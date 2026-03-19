@@ -42,7 +42,7 @@ Installs `markdown` and `bleach` so step body text is rendered as Markdown.
 1. Install the package:
 
    ```bash
-   pip install aa-pipeline
+   aa-pipeline[markdown]
    ```
 
 2. Add to `INSTALLED_APPS` in your Alliance Auth settings:
