@@ -52,7 +52,7 @@ This installs `markdown` and `bleach` automatically when running `docker compose
 2. Add to your `requirements.txt`:
 
    ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.1
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.2
    ```
 
 3. Add `"pipeline"` to `INSTALLED_APPS` in your Alliance Auth settings file (e.g. `local.py`):
