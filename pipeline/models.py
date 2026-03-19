@@ -602,7 +602,12 @@ class FlowAssignment(models.Model):
     class Meta:
         verbose_name = _("assignment")
         verbose_name_plural = _("assignments")
-        unique_together = [("flow", "user")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["flow", "user"],
+                name="pipeline_flowassignment_flow_user_unique",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.user.username} → {self.flow.name} ({self.get_status_display()})"
@@ -697,7 +702,12 @@ class StepCompletion(models.Model):
     class Meta:
         verbose_name = _("step completion")
         verbose_name_plural = _("step completions")
-        unique_together = [("assignment", "step")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["assignment", "step"],
+                name="pipeline_stepcompletion_assignment_step_unique",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.assignment.user.username}: {self.step.name}"
