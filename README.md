@@ -30,7 +30,7 @@
 **Optional:**
 
 ```
-pip install aa-pipeline[markdown]
+pip install aa-pipeline
 ```
 
 Installs `markdown` and `bleach` so step body text is rendered as Markdown.
