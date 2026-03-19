@@ -1,0 +1,355 @@
+{% extends 'pipeline/base.html' %}
+{% load i18n %}
+
+{% block page_title %}{{ flow.name }}{% endblock %}
+{% block header_nav_brand %}
+    <span class="text-body-secondary me-1">
+        <a href="{% url 'pipeline:index' %}" class="text-white text-decoration-none opacity-75">
+            {% trans "Pipeline" %}
+        </a>
+        <i class="fas fa-chevron-right fa-xs mx-1 opacity-50"></i>
+    </span>
+    {{ flow.name }}
+{% endblock header_nav_brand %}
+
+{% block pipeline_content %}
+
+{# ===== Top Progress Strip ===================================================
+   Sticky at the top of the scroll area — visible at all times while scrolling.
+   ========================================================================== #}
+<div class="pipeline-progress-strip" aria-label="{% trans 'Flow progress' %}">
+    <div class="progress rounded-0" style="height: 3px;" role="progressbar"
+         aria-valuenow="{{ total_pct }}" aria-valuemin="0" aria-valuemax="100"
+         aria-label="{{ total_pct }}%">
+        <div class="progress-bar {% if total_pct == 100 %}bg-success{% else %}bg-primary{% endif %} pipeline-progress-bar-animated"
+             style="width: {{ total_pct }}%">
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid py-3">
+
+    {# ── Flow header ─────────────────────────────────────────────────────── #}
+    <div class="row mb-3 align-items-center">
+        <div class="col">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h3 class="mb-0">{{ flow.name }}</h3>
+                <span class="badge pipeline-badge-type pipeline-type-{{ flow.flow_type }}">
+                    {{ flow.get_flow_type_display }}
+                </span>
+                {% if flow.status == 'draft' %}
+                <span class="badge text-bg-warning">
+                    <i class="fas fa-pencil fa-fw me-1"></i>{% trans "Preview (Draft)" %}
+                </span>
+                {% endif %}
+            </div>
+            {% if flow.description %}
+            <p class="text-body-secondary mb-0 mt-1 small">{{ flow.description }}</p>
+            {% endif %}
+        </div>
+        <div class="col-auto d-none d-md-block text-end">
+            <span class="badge text-bg-light text-dark fs-6">
+                {{ completed_count }}&nbsp;/&nbsp;{{ total_count }}
+            </span>
+            <small class="text-body-secondary d-block">{% trans "steps complete" %}</small>
+        </div>
+    </div>
+
+    <div class="row g-3">
+
+        {# ===== Left Sidebar: Step List ====================================== #}
+        <div class="col-12 col-lg-3 order-lg-1 order-2">
+            <div class="card pipeline-sidebar-card sticky-top" style="top: 1rem;">
+
+                {# Mobile: collapsible step list #}
+                <div class="card-header d-lg-none" role="button"
+                     data-bs-toggle="collapse" data-bs-target="#pipelineSidebarBody"
+                     aria-expanded="false" aria-controls="pipelineSidebarBody">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold">
+                            <i class="fas fa-list fa-fw me-2"></i>{% trans "Steps" %}
+                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge text-bg-secondary">{{ completed_count }}/{{ total_count }}</span>
+                            <i class="fas fa-chevron-down fa-sm pipeline-collapse-icon"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar {% if total_pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
+                             style="width: {{ total_pct }}%"></div>
+                    </div>
+                </div>
+
+                <div id="pipelineSidebarBody" class="collapse show">
+                    <div class="list-group list-group-flush">
+                        {% for s in steps %}
+                        <a href="{{ s.url }}"
+                           class="list-group-item list-group-item-action pipeline-step-item
+                                  {% if current and s.step.pk == current.step.pk %}active{% endif %}
+                                  {% if s.complete %}pipeline-step-complete{% endif %}"
+                           title="{{ s.step.description }}">
+                            <div class="d-flex align-items-center gap-2">
+
+                                {# Step state icon #}
+                                <span class="pipeline-step-icon flex-shrink-0">
+                                    {% if s.complete %}
+                                    <i class="fas fa-circle-check text-success"></i>
+                                    {% elif current and s.step.pk == current.step.pk %}
+                                    <i class="fas fa-chevron-right text-primary"></i>
+                                    {% else %}
+                                    <i class="far fa-circle text-body-tertiary"></i>
+                                    {% endif %}
+                                </span>
+
+                                <span class="pipeline-step-name flex-grow-1 text-truncate small">
+                                    {{ s.step.name }}
+                                </span>
+
+                                {% if s.step.optional %}
+                                <span class="badge text-bg-light text-muted pipeline-optional-badge" title="{% trans 'Optional step' %}">
+                                    {% trans "opt" %}
+                                </span>
+                                {% endif %}
+
+                            </div>
+
+                            {# Inline mini progress for filter checks with partial completion #}
+                            {% if not s.complete and s.effective_type == 'filter_check' and s.step.checks.count > 0 and s.pct > 0 %}
+                            <div class="progress mt-1" style="height: 2px;">
+                                {# s.pct is 0.0–1.0; widthratio multiplies by 100 for CSS width #}
+                                <div class="progress-bar bg-warning" style="width: {% widthratio s.pct 1 100 %}%"></div>
+                            </div>
+                            {% endif %}
+
+                        </a>
+                        {% endfor %}
+                    </div>
+
+                    {# Desktop progress bar in footer #}
+                    <div class="card-footer d-none d-lg-block py-2">
+                        <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                            <span>{% trans "Progress" %}</span>
+                            <span>{{ completed_count }}/{{ total_count }}</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar {% if total_pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
+                                 style="width: {{ total_pct }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>{# /sidebar #}
+
+        {# ===== Right Panel: Step Content ==================================== #}
+        <div class="col-12 col-lg-9 order-lg-2 order-1">
+
+            {% if all_complete %}
+            {# ── Completion card ─────────────────────────────────────────── #}
+            <div class="card border-success pipeline-complete-card">
+                <div class="card-header bg-success bg-opacity-10 border-success-subtle text-center py-4">
+                    <i class="fas fa-circle-check fa-3x text-success mb-2"></i>
+                    <h4 class="mb-0 text-success">{% trans "Flow Complete!" %}</h4>
+                </div>
+                <div class="card-body">
+                    {% if complete_body_html %}
+                    <div class="pipeline-step-body">{{ complete_body_html|safe }}</div>
+                    {% else %}
+                    <p class="text-center text-body-secondary mb-0">
+                        {% blocktrans with name=flow.name %}You have completed all required steps in <strong>{{ name }}</strong>. Well done!{% endblocktrans %}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-center bg-transparent">
+                    <a href="{% url 'pipeline:index' %}" class="btn btn-outline-success">
+                        <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back to Pipeline" %}
+                    </a>
+                </div>
+            </div>
+
+            {% elif current %}
+            {# ── Active step card ─────────────────────────────────────────── #}
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0">
+                            {% if current.complete %}
+                            <i class="fas fa-circle-check text-success me-2"></i>
+                            {% elif current.effective_type == 'acknowledgement' %}
+                            <i class="fas fa-file-signature text-info me-2"></i>
+                            {% elif current.effective_type == 'service_check' %}
+                            <i class="fas fa-plug text-warning me-2"></i>
+                            {% else %}
+                            <i class="fas fa-filter-circle-xmark text-primary me-2"></i>
+                            {% endif %}
+                            {{ current.step.name }}
+                        </h5>
+                        <div class="d-flex align-items-center gap-2">
+                            {% if current.step.optional %}
+                            <span class="badge text-bg-secondary">{% trans "Optional" %}</span>
+                            {% endif %}
+                            <span class="badge text-bg-light text-dark">
+                                {{ current.step.get_step_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+
+                    {# Step body text (rendered Markdown) #}
+                    {% if current.body_html %}
+                    <div class="pipeline-step-body mb-4">
+                        {{ current.body_html|safe }}
+                    </div>
+                    {% endif %}
+
+                    {# ── filter_check: requirements checklist ─────────────── #}
+                    {% if current.effective_type == 'filter_check' and current.check_details %}
+                    <div class="pipeline-check-list mb-3">
+                        <h6 class="text-body-secondary mb-2">
+                            <i class="fas fa-list-check fa-fw me-1"></i>{% trans "Requirements" %}
+                        </h6>
+                        <div class="list-group">
+                            {% for check in current.check_details %}
+                            <div class="list-group-item d-flex align-items-center gap-3 pipeline-check-row
+                                        {% if check.passed %}pipeline-check-passed{% else %}pipeline-check-failed{% endif %}">
+                                {% if check.passed %}
+                                <i class="fas fa-circle-check fa-lg text-success flex-shrink-0"></i>
+                                {% else %}
+                                <i class="far fa-circle fa-lg text-danger flex-shrink-0"></i>
+                                {% endif %}
+                                <span>{{ check.label }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ── service_check: service status ─────────────────────── #}
+                    {% if current.effective_type == 'service_check' %}
+                    <div class="alert alert-info d-flex align-items-center gap-2" role="alert">
+                        <i class="fas fa-plug fa-fw flex-shrink-0"></i>
+                        <div>
+                            {% blocktrans with slug=current.step.service_slug %}
+                            This step checks your account status for the <strong>{{ slug }}</strong> service.
+                            {% endblocktrans %}
+                            {% if current.complete %}
+                            <br><span class="text-success fw-semibold">{% trans "Your account is active." %}</span>
+                            {% else %}
+                            <br><span class="text-danger fw-semibold">{% trans "No active account found." %}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>{# /card-body #}
+
+                {# ── Card footer: CTA ─────────────────────────────────────── #}
+                {% if not current.complete %}
+                <div class="card-footer">
+                    {% if current.effective_type == 'filter_check' %}
+                    {# Refresh — re-evaluates filter criteria #}
+                    <form method="POST" action="{% url 'pipeline:step_action' flow.slug current.step.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="refresh">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-rotate-right fa-fw me-1"></i>{% trans "Refresh Status" %}
+                        </button>
+                        <span class="text-body-secondary small ms-2">
+                            {% trans "Complete the requirements above, then click Refresh." %}
+                        </span>
+                    </form>
+
+                    {% elif current.effective_type == 'acknowledgement' %}
+                    {# Acknowledgement — user confirms they've read and understood #}
+                    <form method="POST" action="{% url 'pipeline:step_action' flow.slug current.step.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="acknowledge">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="ack-checkbox-{{ current.step.pk }}"
+                                   required>
+                            <label class="form-check-label" for="ack-checkbox-{{ current.step.pk }}">
+                                {% trans "I have read and understood the above." %}
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check fa-fw me-1"></i>{% trans "Acknowledge & Continue" %}
+                        </button>
+                    </form>
+
+                    {% elif current.effective_type == 'service_check' %}
+                    {# Service check — refresh or manual confirm if fallback #}
+                    <form method="POST" action="{% url 'pipeline:step_action' flow.slug current.step.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="refresh">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-rotate-right fa-fw me-1"></i>{% trans "Check Again" %}
+                        </button>
+                        <span class="text-body-secondary small ms-2">
+                            {% trans "Set up your service account, then click Check Again." %}
+                        </span>
+                    </form>
+
+                    {% endif %}
+                </div>
+                {% else %}
+                {# Step is complete — show a continue button to the next step #}
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span class="text-success">
+                        <i class="fas fa-circle-check fa-fw me-1"></i>{% trans "Complete" %}
+                    </span>
+                    {% if next_step %}
+                    <a href="{{ next_step.url }}" class="btn btn-sm btn-outline-primary">
+                        {% trans "Next" %}: {{ next_step.step.name }}
+                        <i class="fas fa-arrow-right fa-fw ms-1"></i>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+            </div>{# /step card #}
+
+            {% else %}
+            {# ── Fallback: all optional steps incomplete but no required steps ─ #}
+            <div class="card">
+                <div class="card-body text-center py-5 text-body-secondary">
+                    <i class="fas fa-check-double fa-3x mb-3"></i>
+                    <p class="mb-0">{% trans "All required steps are complete." %}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ── Step navigation (prev / next) ─────────────────────────────── #}
+            {% if steps|length > 1 %}
+            <div class="d-flex justify-content-between mt-3">
+                {% with prev_step=None %}
+                {% for s in steps %}
+                {% if current and s.step.pk == current.step.pk %}
+                    {# Previous button logic is handled via JS or a templatetag in Phase 2 #}
+                {% endif %}
+                {% endfor %}
+                {% endwith %}
+                <div class="d-flex gap-2 ms-auto">
+                    {% for s in steps %}
+                    <a href="{{ s.url }}"
+                       class="btn btn-sm {% if current and s.step.pk == current.step.pk %}btn-primary{% elif s.complete %}btn-outline-success{% else %}btn-outline-secondary{% endif %} pipeline-dot-nav"
+                       title="{{ s.step.name }}"
+                       aria-label="{{ s.step.name }}">
+                        {% if s.complete %}
+                        <i class="fas fa-check fa-xs"></i>
+                        {% else %}
+                        <span class="pipeline-dot-num">{{ forloop.counter }}</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>{# /right panel #}
+
+    </div>{# /row #}
+</div>{# /container-fluid #}
+
+{% endblock pipeline_content %}

@@ -1,0 +1,278 @@
+/* ============================================================================
+   Pipeline App — pipeline.css
+   Alliance Auth Bootstrap 5 compatible stylesheet.
+   Uses CSS custom properties where possible so AA themes work automatically.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   Progress Strip
+   Sticky top within the .nav-padding scrollable container.
+   --------------------------------------------------------------------------- */
+.pipeline-progress-strip {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bs-body-bg);
+    /* subtle bottom shadow to lift it off the content */
+    box-shadow: 0 1px 0 0 var(--bs-border-color);
+}
+
+.pipeline-progress-strip .progress {
+    border-radius: 0;
+    height: 3px;
+}
+
+.pipeline-progress-bar-animated {
+    transition: width 0.5s ease;
+}
+
+/* ---------------------------------------------------------------------------
+   Step Sidebar
+   --------------------------------------------------------------------------- */
+.pipeline-sidebar-card {
+    /* Allow sticky to work; avoid exceeding viewport */
+    max-height: calc(100vh - 6rem);
+    display: flex;
+    flex-direction: column;
+}
+
+.pipeline-sidebar-card .list-group {
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.pipeline-step-item {
+    border-left: 3px solid transparent !important;
+    transition: border-left-color 0.15s ease;
+    padding: 0.5rem 0.75rem;
+}
+
+.pipeline-step-item:hover {
+    border-left-color: var(--bs-border-color) !important;
+}
+
+.pipeline-step-item.active {
+    border-left-color: var(--bs-primary) !important;
+    background-color: var(--bs-primary-bg-subtle) !important;
+    color: var(--bs-primary-text-emphasis) !important;
+}
+
+.pipeline-step-item.pipeline-step-complete {
+    border-left-color: var(--bs-success) !important;
+}
+
+.pipeline-step-icon {
+    width: 1.1rem;
+    text-align: center;
+}
+
+.pipeline-step-name {
+    max-width: 14rem;
+}
+
+.pipeline-optional-badge {
+    font-size: 0.65rem;
+}
+
+/* Collapse icon animation */
+[data-bs-toggle="collapse"][aria-expanded="true"] .pipeline-collapse-icon {
+    transform: rotate(180deg);
+}
+.pipeline-collapse-icon {
+    transition: transform 0.2s ease;
+}
+
+/* ---------------------------------------------------------------------------
+   Step Content Body (Rendered Markdown)
+   --------------------------------------------------------------------------- */
+.pipeline-step-body {
+    max-width: 72ch;
+    line-height: 1.7;
+}
+
+.pipeline-step-body > *:first-child {
+    margin-top: 0;
+}
+
+.pipeline-step-body h1,
+.pipeline-step-body h2,
+.pipeline-step-body h3,
+.pipeline-step-body h4,
+.pipeline-step-body h5 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.pipeline-step-body pre {
+    background-color: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 0.875rem 1rem;
+    overflow-x: auto;
+    font-size: 0.875em;
+}
+
+.pipeline-step-body code {
+    background-color: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+    padding: 0.15em 0.35em;
+    border-radius: var(--bs-border-radius-sm);
+    font-size: 0.875em;
+}
+
+.pipeline-step-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+.pipeline-step-body blockquote {
+    border-left: 4px solid var(--bs-border-color);
+    padding-left: 1rem;
+    color: var(--bs-secondary-color);
+    margin-left: 0;
+}
+
+.pipeline-step-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.pipeline-step-body table th,
+.pipeline-step-body table td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--bs-border-color);
+}
+
+.pipeline-step-body table th {
+    background-color: var(--bs-secondary-bg);
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Filter Check List
+   --------------------------------------------------------------------------- */
+.pipeline-check-row {
+    transition: background-color 0.15s ease;
+}
+
+.pipeline-check-passed {
+    background-color: var(--bs-success-bg-subtle) !important;
+}
+
+.pipeline-check-failed {
+    /* no special bg — keep default */
+}
+
+/* ---------------------------------------------------------------------------
+   Flow Type Badges
+   --------------------------------------------------------------------------- */
+.pipeline-badge-type {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.25em 0.5em;
+    border-radius: var(--bs-border-radius-sm);
+}
+
+.pipeline-type-onboarding    { background-color: #0d6efd20; color: #0d6efd; }
+.pipeline-type-training      { background-color: #6610f220; color: #6610f2; }
+.pipeline-type-certification { background-color: #fd7e1420; color: #fd7e14; }
+.pipeline-type-vetting       { background-color: #dc354520; color: #dc3545; }
+.pipeline-type-industry      { background-color: #19875420; color: #198754; }
+.pipeline-type-other         { background-color: #6c757d20; color: #6c757d; }
+
+/* Dark-mode overrides: use slightly lighter shades */
+[data-bs-theme="dark"] .pipeline-type-onboarding    { background-color: #0d6efd30; color: #8ab4f8; }
+[data-bs-theme="dark"] .pipeline-type-training      { background-color: #7c3aed30; color: #bb86fc; }
+[data-bs-theme="dark"] .pipeline-type-certification { background-color: #fd7e1430; color: #ffab5e; }
+[data-bs-theme="dark"] .pipeline-type-vetting       { background-color: #dc354530; color: #f48c97; }
+[data-bs-theme="dark"] .pipeline-type-industry      { background-color: #19875430; color: #56c586; }
+[data-bs-theme="dark"] .pipeline-type-other         { background-color: #6c757d30; color: #adb5bd; }
+
+/* ---------------------------------------------------------------------------
+   Index page — Flow cards
+   --------------------------------------------------------------------------- */
+.pipeline-flow-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pipeline-flow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Dashboard widget cards
+   --------------------------------------------------------------------------- */
+.pipeline-dashboard-card {
+    transition: transform 0.1s ease;
+}
+
+.pipeline-dashboard-card:hover {
+    transform: translateY(-1px);
+}
+
+/* ---------------------------------------------------------------------------
+   Completion card animation
+   --------------------------------------------------------------------------- */
+@keyframes pipeline-complete-fade {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pipeline-complete-card {
+    animation: pipeline-complete-fade 0.4s ease-out;
+}
+
+/* ---------------------------------------------------------------------------
+   Dot navigation (step number buttons below step card)
+   --------------------------------------------------------------------------- */
+.pipeline-dot-nav {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile: flatten sidebar into horizontal pill list
+   --------------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    .pipeline-sidebar-card {
+        max-height: none;
+        position: static;
+    }
+
+    .pipeline-step-item {
+        border-left: none !important;
+        border-bottom: 3px solid transparent !important;
+        display: inline-block;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .pipeline-step-item.active {
+        border-bottom-color: var(--bs-primary) !important;
+    }
+
+    .pipeline-step-item.pipeline-step-complete {
+        border-bottom-color: var(--bs-success) !important;
+    }
+}

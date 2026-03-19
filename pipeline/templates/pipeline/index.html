@@ -1,0 +1,128 @@
+{% extends 'pipeline/base.html' %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Pipeline" %}{% endblock %}
+{% block header_nav_brand %}{% trans "Pipeline" %}{% endblock %}
+
+{% block pipeline_content %}
+<div class="container-fluid py-3">
+
+    {# ── Assigned Flows ─────────────────────────────────────────────────── #}
+    {% if assigned_items %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-list-check fa-fw me-2 text-primary"></i>
+                {% trans "Your Assigned Flows" %}
+            </h4>
+            <div class="row g-3">
+                {% for item in assigned_items %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card h-100 pipeline-flow-card {% if item.assignment.status == 'completed' %}border-success{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div>
+                                    <span class="badge pipeline-badge-type pipeline-type-{{ item.flow.flow_type }} me-1">
+                                        {{ item.flow.get_flow_type_display }}
+                                    </span>
+                                    {% if item.assignment.status == 'completed' %}
+                                    <span class="badge text-bg-success">{% trans "Complete" %}</span>
+                                    {% elif item.assignment.status == 'in_progress' %}
+                                    <span class="badge text-bg-primary">{% trans "In Progress" %}</span>
+                                    {% else %}
+                                    <span class="badge text-bg-secondary">{% trans "Assigned" %}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <h5 class="card-title mb-1">{{ item.flow.name }}</h5>
+                            {% if item.flow.description %}
+                            <p class="card-text text-body-secondary small mb-3">{{ item.flow.description|truncatewords:20 }}</p>
+                            {% endif %}
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                                    <span>{% trans "Progress" %}</span>
+                                    <span>{{ item.completed }}/{{ item.total }}</span>
+                                </div>
+                                <div class="progress" style="height: 6px;" role="progressbar"
+                                     aria-valuenow="{{ item.pct }}" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar {% if item.pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
+                                         style="width: {{ item.pct }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0 pt-0">
+                            <a href="{% url 'pipeline:flow_detail' item.flow.slug %}"
+                               class="btn btn-sm {% if item.assignment.status == 'completed' %}btn-outline-success{% else %}btn-primary{% endif %} w-100">
+                                {% if item.assignment.status == 'completed' %}
+                                <i class="fas fa-eye fa-fw me-1"></i>{% trans "Review" %}
+                                {% elif item.assignment.status == 'in_progress' %}
+                                <i class="fas fa-play fa-fw me-1"></i>{% trans "Continue" %}
+                                {% else %}
+                                <i class="fas fa-play fa-fw me-1"></i>{% trans "Begin" %}
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Available Flows ────────────────────────────────────────────────── #}
+    {% if available_items %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-compass fa-fw me-2 text-secondary"></i>
+                {% trans "Available Flows" %}
+            </h4>
+            <div class="row g-3">
+                {% for item in available_items %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card h-100 pipeline-flow-card border-dashed">
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <span class="badge pipeline-badge-type pipeline-type-{{ item.flow.flow_type }}">
+                                    {{ item.flow.get_flow_type_display }}
+                                </span>
+                            </div>
+                            <h5 class="card-title mb-1">{{ item.flow.name }}</h5>
+                            {% if item.flow.description %}
+                            <p class="card-text text-body-secondary small mb-2">{{ item.flow.description|truncatewords:20 }}</p>
+                            {% endif %}
+                            <small class="text-body-secondary">
+                                <i class="fas fa-list-ol fa-fw me-1"></i>
+                                {% blocktrans with count=item.total %}{{ count }} step{% endblocktrans %}{% if item.total != 1 %}s{% endif %}
+                            </small>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0 pt-0">
+                            <a href="{% url 'pipeline:flow_detail' item.flow.slug %}"
+                               class="btn btn-sm btn-outline-primary w-100">
+                                <i class="fas fa-arrow-right fa-fw me-1"></i>{% trans "View" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Empty state ─────────────────────────────────────────────────────── #}
+    {% if not assigned_items and not available_items %}
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-6 text-center py-5">
+            <i class="fas fa-route fa-4x text-body-tertiary mb-3"></i>
+            <h5 class="text-body-secondary">{% trans "No flows available" %}</h5>
+            <p class="text-body-tertiary small">
+                {% trans "You have no flows assigned or available at this time. Check back later or contact your leadership." %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+</div>{# /container-fluid #}
+{% endblock pipeline_content %}

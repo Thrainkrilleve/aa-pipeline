@@ -1,0 +1,16 @@
+{% extends 'allianceauth/base-bs5.html' %}
+{% load i18n static %}
+
+{% block content %}
+<div class="pipeline-app">
+    {% block pipeline_content %}{% endblock %}
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'pipeline/css/pipeline.css' %}">
+{% endblock extra_css %}
+
+{% block extra_javascript %}
+<script src="{% static 'pipeline/js/pipeline.js' %}" defer></script>
+{% endblock extra_javascript %}
