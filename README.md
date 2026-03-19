@@ -39,7 +39,7 @@ See the [Alliance Auth plugin installation docs](https://allianceauth.readthedoc
 1. Add `aa-pipeline` to your `requirements.txt`:
 
    ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.9
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.10
    ```
 
    The `[markdown]` extra installs `markdown` and `bleach` to enable Markdown rendering in step body text. Without it, body text is displayed as plain text.
@@ -69,7 +69,7 @@ See the [Alliance Auth plugin installation docs](https://allianceauth.readthedoc
 1. Update the version pin in your `requirements.txt`:
 
    ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.9
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.10
    ```
 
 2. Rebuild and apply any new migrations:

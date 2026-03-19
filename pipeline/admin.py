@@ -481,8 +481,21 @@ class StepCompletionAdmin(admin.ModelAdmin):
     )
     list_filter = ["assignment__flow", "step__step_type"]
     ordering = ["-completed_at"]
-    readonly_fields = ["completed_at", "assignment", "step", "completed_by", "metadata"]
+    # On the change form everything is read-only (audit record).
+    # On the add form assignment/step/completed_by are editable.
+    readonly_fields = ["completed_at"]
     list_select_related = True
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            # Existing record — lock all fields
+            return ["completed_at", "assignment", "step", "completed_by", "metadata"]
+        return ["completed_at"]
+
+    def save_model(self, request, obj, form, change):
+        if not change and not obj.completed_by_id:
+            obj.completed_by = request.user
+        super().save_model(request, obj, form, change)
 
     def get_queryset(self, request):
         return (

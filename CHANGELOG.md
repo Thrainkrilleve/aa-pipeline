@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.10] - 2026-03-19
+
+### Fixed
+- **Step Completions add form was unusable** — all fields including
+  `assignment`, `step`, and `completed_by` were marked read-only, rendering
+  the Add page blank. The add form now exposes those fields as editable
+  dropdowns; the change (edit) form retains full read-only behaviour to
+  preserve the audit record. `completed_by` defaults to the logged-in admin
+  if not explicitly set.
+
+---
+
 ## [0.1.9] - 2026-03-19
 
 ### Fixed
