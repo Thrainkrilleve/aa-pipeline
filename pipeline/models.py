@@ -13,6 +13,7 @@ General             Unmanaged meta-model that holds app-level permissions.
 """
 
 # Standard Library
+import functools
 import logging
 
 # Django
@@ -454,12 +455,14 @@ class FlowStep(models.Model):
 
     # ---- Completion logic ----------------------------------------------------
 
+    @functools.cached_property
     def effective_type(self) -> str:
         """
         Return the type that should be used for rendering and completion checks.
 
         For ``service_check`` steps, this may differ from ``step_type`` when the
-        target service is not installed.
+        target service is not installed.  Result is cached on the instance for the
+        lifetime of the object (one HTTP request cycle).
         """
         if self.step_type != StepType.SERVICE_CHECK:
             return self.step_type
@@ -474,7 +477,7 @@ class FlowStep(models.Model):
         return StepType.SERVICE_CHECK
 
     def is_complete(self, user: User, assignment: "FlowAssignment") -> bool:
-        etype = self.effective_type()
+        etype = self.effective_type
 
         if etype == StepType.FILTER_CHECK:
             checks = list(self.checks.select_related("filter__content_type").all())
@@ -495,7 +498,7 @@ class FlowStep(models.Model):
         return False
 
     def get_completion_pct(self, user: User, assignment: "FlowAssignment") -> float:
-        etype = self.effective_type()
+        etype = self.effective_type
         if etype == StepType.FILTER_CHECK:
             checks = list(self.checks.select_related("filter__content_type").all())
             if not checks:

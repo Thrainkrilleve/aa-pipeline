@@ -90,7 +90,11 @@ def is_service_installed(slug: str) -> bool:
     entry = _REGISTRY.get(slug)
     if entry is None:
         return False
-    return apps.is_installed(entry["app_label"])
+    try:
+        apps.get_app_config(entry["app_label"])
+        return True
+    except LookupError:
+        return False
 
 
 def check_service_for_user(slug: str, user: User) -> bool:
@@ -105,7 +109,9 @@ def check_service_for_user(slug: str, user: User) -> bool:
         logger.warning("Pipeline service registry: unknown slug %r", slug)
         return False
 
-    if not apps.is_installed(entry["app_label"]):
+    try:
+        apps.get_app_config(entry["app_label"])
+    except LookupError:
         logger.debug(
             "Pipeline service registry: app %r not installed, slug %r",
             entry["app_label"],
@@ -136,6 +142,9 @@ def get_all_services() -> dict[str, dict]:
     for each entry (useful in the admin builder to show what's available).
     """
     return {
-        slug: {**entry, "installed": apps.is_installed(entry["app_label"])}
+        slug: {
+            **entry,
+            "installed": is_service_installed(slug),
+        }
         for slug, entry in _REGISTRY.items()
     }

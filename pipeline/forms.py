@@ -5,7 +5,7 @@ from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from .models import FlowStatus, FlowStep, FlowType, OnboardingFlow, StepType
+from .models import CheckFilter, FlowStatus, FlowStep, FlowType, OnboardingFlow, StepCheck, StepType
 
 
 class FlowForm(forms.ModelForm):
@@ -96,4 +96,24 @@ class FlowStepForm(forms.ModelForm):
             "service_fallback_acknowledgement": _(
                 "If the service is not installed, fall back to acknowledgement mode."
             ),
+        }
+
+
+class StepCheckForm(forms.ModelForm):
+    class Meta:
+        model = StepCheck
+        fields = ["filter", "label", "order"]
+        widgets = {
+            "filter": forms.Select(attrs={"class": "form-select"}),
+            "label": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": _("Optional — defaults to filter name"),
+                }
+            ),
+            "order": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+        }
+        help_texts = {
+            "label": _("Custom label shown to users. Leave blank to use the filter's own name."),
+            "order": _("Lower numbers appear first."),
         }

@@ -119,6 +119,99 @@
                     </form>
                 </div>
             </div>
+
+            {# ── Smart Filter Checks (filter_check steps only, only when editing) ─── #}
+            {% if step %}
+            <div class="card mt-4" id="filter-checks-card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span>
+                        <i class="fas fa-filter fa-fw me-1"></i>{% trans "Smart Filter Checks" %}
+                    </span>
+                    <span class="badge text-bg-secondary">{{ checks|length }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-body-secondary small mb-3">
+                        {% trans "All checks must pass for this step to be marked complete. Checks are evaluated in order." %}
+                    </p>
+
+                    {% if checks %}
+                    <ul class="list-group list-group-flush mb-4">
+                        {% for sc in checks %}
+                        <li class="list-group-item d-flex align-items-center gap-3 px-0">
+                            <span class="badge text-bg-secondary" style="min-width:2rem;">{{ sc.order }}</span>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ sc.label|default:sc.filter }}</div>
+                                {% if sc.label %}
+                                <small class="text-body-secondary">{{ sc.filter }}</small>
+                                {% endif %}
+                            </div>
+                            <form method="post"
+                                  action="{% url 'pipeline:manage_step_check_delete' flow.slug step.pk sc.pk %}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('{% trans "Remove this smart filter check?" %}');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{% trans 'Remove' %}">
+                                    <i class="fas fa-trash fa-fw"></i>
+                                </button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-body-secondary small mb-4">
+                        <i class="fas fa-circle-info fa-fw me-1"></i>
+                        {% trans "No checks configured. This step will auto-pass until at least one check is added." %}
+                    </div>
+                    {% endif %}
+
+                    {# ── Add check form ────────────────────────────────── #}
+                    {% if has_filters %}
+                    <div class="border rounded p-3">
+                        <h6 class="mb-3 fw-semibold">
+                            <i class="fas fa-plus fa-fw me-1 text-primary"></i>{% trans "Add a check" %}
+                        </h6>
+                        <form method="post" action="{% url 'pipeline:manage_step_check_add' flow.slug step.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="{{ check_form.filter.id_for_label }}" class="form-label fw-semibold">
+                                    {% trans "Smart Filter" %}
+                                </label>
+                                {{ check_form.filter }}
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-8">
+                                    <label for="{{ check_form.label.id_for_label }}" class="form-label fw-semibold">
+                                        {% trans "Label" %} <span class="fw-normal text-body-secondary">({% trans "optional" %})</span>
+                                    </label>
+                                    {{ check_form.label }}
+                                    <div class="form-text">{{ check_form.label.help_text }}</div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="{{ check_form.order.id_for_label }}" class="form-label fw-semibold">
+                                        {% trans "Order" %}
+                                    </label>
+                                    {{ check_form.order }}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus fa-fw me-1"></i>{% trans "Add Check" %}
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle fa-fw me-1"></i>
+                        {% blocktrans %}
+                        No Smart Filters are registered in the catalog yet. Run
+                        <code>python manage.py pipeline_sync_filters</code> to import existing filters,
+                        or add a Smart Filter object via the Django admin first.
+                        {% endblocktrans %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
         </div>
     </div>
 
@@ -129,11 +222,15 @@
     const typeSelect = document.getElementById('{{ form.step_type.id_for_label }}');
     const serviceFields = document.getElementById('service-fields');
     const serviceFallback = document.getElementById('service-fallback-field');
+    const filterChecksCard = document.getElementById('filter-checks-card');
 
     function toggle() {
-        const isService = typeSelect && typeSelect.value === 'service_check';
+        const val = typeSelect ? typeSelect.value : '';
+        const isService = val === 'service_check';
+        const isFilter = val === 'filter_check';
         if (serviceFields) serviceFields.style.display = isService ? '' : 'none';
         if (serviceFallback) serviceFallback.style.display = isService ? '' : 'none';
+        if (filterChecksCard) filterChecksCard.style.display = isFilter ? '' : 'none';
     }
 
     if (typeSelect) {

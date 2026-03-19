@@ -28,6 +28,21 @@ urlpatterns = [
         views.manage_step_delete,
         name="manage_step_delete",
     ),
+    path(
+        "manage/<slug:slug>/steps/<int:step_pk>/checks/add/",
+        views.manage_step_check_add,
+        name="manage_step_check_add",
+    ),
+    path(
+        "manage/<slug:slug>/steps/<int:step_pk>/checks/<int:check_pk>/delete/",
+        views.manage_step_check_delete,
+        name="manage_step_check_delete",
+    ),
+    path(
+        "manage/<slug:slug>/steps/<int:step_pk>/reorder/<str:direction>/",
+        views.manage_step_reorder,
+        name="manage_step_reorder",
+    ),
     # ── Flow detail — slug-based routes (must come after manage/) ────────────
     path("<slug:slug>/", views.flow_detail, name="flow_detail"),
     path(

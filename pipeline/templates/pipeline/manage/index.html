@@ -43,6 +43,8 @@
                         <th>{% trans "Type" %}</th>
                         <th>{% trans "Status" %}</th>
                         <th class="text-center">{% trans "Steps" %}</th>
+                        <th class="text-center">{% trans "Active" %}</th>
+                        <th class="text-center">{% trans "Completed" %}</th>
                         <th class="text-center">{% trans "Auto-assign" %}</th>
                         <th class="text-end">{% trans "Actions" %}</th>
                     </tr>
@@ -71,7 +73,13 @@
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <span class="badge text-bg-secondary">{{ flow.steps.count }}</span>
+                            <span class="badge text-bg-secondary">{{ flow.step_count }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge text-bg-info text-dark" title="{% trans 'Assigned or in progress' %}">{{ flow.active_count }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge text-bg-success">{{ flow.completed_count }}</span>
                         </td>
                         <td class="text-center">
                             {% if flow.auto_assign %}
@@ -93,10 +101,12 @@
                                 <form method="post" action="{% url 'pipeline:manage_flow_publish' flow.slug %}" class="d-inline">
                                     {% csrf_token %}
                                     <button type="submit"
-                                            class="btn {% if flow.status == 'published' %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
-                                            title="{% if flow.status == 'published' %}{% trans 'Unpublish' %}{% else %}{% trans 'Publish' %}{% endif %}">
+                                            class="btn {% if flow.status == 'published' %}btn-outline-warning{% elif flow.status == 'archived' %}btn-outline-secondary{% else %}btn-outline-success{% endif %}"
+                                            title="{% if flow.status == 'published' %}{% trans 'Unpublish' %}{% elif flow.status == 'archived' %}{% trans 'Restore to Draft' %}{% else %}{% trans 'Publish' %}{% endif %}">
                                         {% if flow.status == 'published' %}
                                         <i class="fas fa-eye-slash fa-fw"></i>
+                                        {% elif flow.status == 'archived' %}
+                                        <i class="fas fa-rotate-left fa-fw"></i>
                                         {% else %}
                                         <i class="fas fa-globe fa-fw"></i>
                                         {% endif %}

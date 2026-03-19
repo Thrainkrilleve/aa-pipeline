@@ -3,7 +3,12 @@ Pipeline Celery Tasks
 """
 
 # Standard Library
+import hashlib
+import hmac
+import json
 import logging
+import urllib.error
+import urllib.request
 
 # Third Party
 from celery import shared_task
@@ -83,13 +88,54 @@ def fire_completion_webhook(self, assignment_pk: int) -> None:
     if not url:
         return
 
-    logger.info(
-        "Pipeline webhook stub: would POST to %s for user %s completing flow %s",
+    payload = {
+        "user_id": assignment.user_id,
+        "username": assignment.user.username,
+        "flow_id": assignment.flow_id,
+        "flow_name": assignment.flow.name,
+        "flow_slug": assignment.flow.slug,
+        "completed_at": assignment.completed_at.isoformat() if assignment.completed_at else None,
+    }
+    body = json.dumps(payload).encode("utf-8")
+
+    # HMAC-SHA256 signature using the webhook URL itself as the secret key.
+    # Receivers can verify: hmac.compare_digest(expected_sig, request.headers["X-Pipeline-Signature"])
+    secret = url.encode("utf-8")
+    signature = hmac.new(secret, body, hashlib.sha256).hexdigest()
+
+    req = urllib.request.Request(
         url,
-        assignment.user_id,
-        assignment.flow_id,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-Pipeline-Signature": f"sha256={signature}",
+            "User-Agent": "aa-pipeline-webhook/1.0",
+        },
     )
-    # TODO Phase 4: implement actual HTTP POST with HMAC signature
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            logger.info(
+                "Pipeline webhook: POST to %s returned HTTP %s for assignment pk=%s",
+                url,
+                resp.status,
+                assignment_pk,
+            )
+    except urllib.error.HTTPError as exc:
+        logger.warning(
+            "Pipeline webhook: HTTP %s from %s for assignment pk=%s — retrying",
+            exc.code,
+            url,
+            assignment_pk,
+        )
+        raise self.retry(exc=exc)
+    except Exception as exc:
+        logger.exception(
+            "Pipeline webhook: error POSTing to %s for assignment pk=%s",
+            url,
+            assignment_pk,
+        )
+        raise self.retry(exc=exc)
 
 
 def _notify_user_of_assignment(user, flow) -> None:

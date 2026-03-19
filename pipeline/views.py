@@ -15,6 +15,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
 from django.core.handlers.wsgi import WSGIRequest
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -23,14 +24,16 @@ from django.utils.translation import gettext_lazy as _
 
 from .models import (
     AssignmentStatus,
+    CheckFilter,
     FlowAssignment,
     FlowStatus,
     FlowStep,
     OnboardingFlow,
+    StepCheck,
     StepCompletion,
     StepType,
 )
-from .forms import FlowForm, FlowStepForm
+from .forms import FlowForm, FlowStepForm, StepCheckForm
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +102,7 @@ def _build_step_list(user, flow: OnboardingFlow, assignment: FlowAssignment) -> 
     steps = []
     for step in flow.steps.order_by("order"):
         complete = step.is_complete(user, assignment)
-        etype = step.effective_type()
+        etype = step.effective_type
         steps.append(
             {
                 "step": step,
@@ -259,7 +262,7 @@ def flow_detail(
 
     # Access control -------------------------------------------------------
     if flow.status == FlowStatus.DRAFT:
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_staff or user.is_superuser or _can_manage(user)):
             raise PermissionDenied(
                 "This flow is not published yet.  Only staff may preview it."
             )
@@ -357,7 +360,7 @@ def step_action(request: WSGIRequest, slug: str, step_pk: int) -> HttpResponse:
     action = request.POST.get("action", "refresh")
 
     if action == "acknowledge":
-        etype = step.effective_type()
+        etype = step.effective_type
         if etype not in (StepType.ACKNOWLEDGEMENT,):
             logger.warning(
                 "Pipeline: acknowledge action on non-acknowledgement step pk=%s", step_pk
@@ -381,7 +384,7 @@ def step_action(request: WSGIRequest, slug: str, step_pk: int) -> HttpResponse:
 
     elif action == "service_confirm":
         # Manual fallback confirmation when service is not installed
-        etype = step.effective_type()
+        etype = step.effective_type
         if etype == StepType.ACKNOWLEDGEMENT and step.step_type == StepType.SERVICE_CHECK:
             StepCompletion.objects.get_or_create(
                 assignment=assignment,
@@ -428,7 +431,23 @@ def _require_manage(view_func):
 @_require_manage
 def manage_index(request: WSGIRequest) -> HttpResponse:
     """List all flows with management actions."""
-    flows = OnboardingFlow.objects.prefetch_related("steps").order_by("name")
+    flows = (
+        OnboardingFlow.objects
+        .annotate(
+            step_count=Count("steps", distinct=True),
+            active_count=Count(
+                "assignments",
+                distinct=True,
+                filter=Q(assignments__status__in=["assigned", "in_progress"]),
+            ),
+            completed_count=Count(
+                "assignments",
+                distinct=True,
+                filter=Q(assignments__status="completed"),
+            ),
+        )
+        .order_by("name")
+    )
     context = {
         "flows": flows,
         "page_title": _("Manage Flows"),
@@ -544,15 +563,57 @@ def manage_step_edit(request: WSGIRequest, slug: str, step_pk: int) -> HttpRespo
     else:
         form = FlowStepForm(instance=step)
 
+    checks = step.checks.select_related("filter__content_type").order_by("order")
+    check_form = StepCheckForm(initial={"order": (checks.values_list("order", flat=True).last() or -1) + 1})
+    has_filters = CheckFilter.objects.exists()
+
     context = {
         "form": form,
         "flow": flow,
         "step": step,
+        "checks": checks,
+        "check_form": check_form,
+        "has_filters": has_filters,
         "page_title": _(f"Edit Step: {step.name}"),
         "action_label": _("Save Step"),
         "cancel_url": reverse("pipeline:manage_flow_edit", kwargs={"slug": slug}),
     }
     return render(request, "pipeline/manage/step_form.html", context)
+
+
+@_require_manage
+def manage_step_check_add(request: WSGIRequest, slug: str, step_pk: int) -> HttpResponse:
+    """Add a StepCheck (smart filter) to a filter_check step."""
+    if request.method != "POST":
+        return redirect("pipeline:manage_step_edit", slug=slug, step_pk=step_pk)
+
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    step = get_object_or_404(FlowStep, pk=step_pk, flow=flow)
+    form = StepCheckForm(request.POST)
+    if form.is_valid():
+        check = form.save(commit=False)
+        check.step = step
+        check.save()
+        messages.success(request, _("Smart filter check added."))
+    else:
+        for field_errors in form.errors.values():
+            for error in field_errors:
+                messages.error(request, error)
+    return redirect("pipeline:manage_step_edit", slug=slug, step_pk=step_pk)
+
+
+@_require_manage
+def manage_step_check_delete(request: WSGIRequest, slug: str, step_pk: int, check_pk: int) -> HttpResponse:
+    """Remove a StepCheck from a step."""
+    if request.method != "POST":
+        return redirect("pipeline:manage_step_edit", slug=slug, step_pk=step_pk)
+
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    step = get_object_or_404(FlowStep, pk=step_pk, flow=flow)
+    check = get_object_or_404(StepCheck, pk=check_pk, step=step)
+    check.delete()
+    messages.success(request, _("Smart filter check removed."))
+    return redirect("pipeline:manage_step_edit", slug=slug, step_pk=step_pk)
 
 
 @_require_manage
@@ -577,7 +638,7 @@ def manage_step_delete(request: WSGIRequest, slug: str, step_pk: int) -> HttpRes
 
 @_require_manage
 def manage_flow_publish(request: WSGIRequest, slug: str) -> HttpResponse:
-    """Quick-action: toggle a flow between draft and published."""
+    """Quick-action: cycle a flow's status (draft → published → draft; archived → draft)."""
     if request.method != "POST":
         return redirect("pipeline:manage_index")
     flow = get_object_or_404(OnboardingFlow, slug=slug)
@@ -585,9 +646,38 @@ def manage_flow_publish(request: WSGIRequest, slug: str) -> HttpResponse:
         flow.status = FlowStatus.DRAFT
         flow.save(update_fields=["status"])
         messages.info(request, _(f'"{flow.name}" set back to Draft.'))
+    elif flow.status == FlowStatus.ARCHIVED:
+        flow.status = FlowStatus.DRAFT
+        flow.save(update_fields=["status"])
+        messages.info(request, _(f'"{flow.name}" restored to Draft.'))
     else:
         flow.status = FlowStatus.PUBLISHED
         flow.save(update_fields=["status"])
         messages.success(request, _(f'"{flow.name}" published.'))
     return redirect("pipeline:manage_index")
+
+
+@_require_manage
+def manage_step_reorder(request: WSGIRequest, slug: str, step_pk: int, direction: str) -> HttpResponse:
+    """Move a step one position up or down in the flow's step order."""
+    if request.method != "POST":
+        return redirect("pipeline:manage_flow_edit", slug=slug)
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    step = get_object_or_404(FlowStep, pk=step_pk, flow=flow)
+    ordered = list(flow.steps.order_by("order"))
+    idx = next((i for i, s in enumerate(ordered) if s.pk == step.pk), None)
+    if idx is None:
+        return redirect("pipeline:manage_flow_edit", slug=slug)
+
+    if direction == "up" and idx > 0:
+        neighbour = ordered[idx - 1]
+    elif direction == "down" and idx < len(ordered) - 1:
+        neighbour = ordered[idx + 1]
+    else:
+        return redirect("pipeline:manage_flow_edit", slug=slug)
+
+    # Swap order values
+    step.order, neighbour.order = neighbour.order, step.order
+    FlowStep.objects.bulk_update([step, neighbour], ["order"])
+    return redirect("pipeline:manage_flow_edit", slug=slug)
 

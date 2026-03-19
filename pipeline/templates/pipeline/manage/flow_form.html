@@ -211,6 +211,28 @@
                     <ul class="list-group list-group-flush">
                         {% for step in steps %}
                         <li class="list-group-item d-flex align-items-center gap-3">
+                            <div class="d-flex flex-column gap-1">
+                                {% if not forloop.first %}
+                                <form method="post" action="{% url 'pipeline:manage_step_reorder' flow.slug step.pk 'up' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="{% trans 'Move up' %}">
+                                        <i class="fas fa-chevron-up fa-xs"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span style="width:1.6rem;"></span>
+                                {% endif %}
+                                {% if not forloop.last %}
+                                <form method="post" action="{% url 'pipeline:manage_step_reorder' flow.slug step.pk 'down' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="{% trans 'Move down' %}">
+                                        <i class="fas fa-chevron-down fa-xs"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span style="width:1.6rem;"></span>
+                                {% endif %}
+                            </div>
                             <span class="badge text-bg-secondary" style="min-width:2rem;">{{ step.order }}</span>
                             <div class="flex-grow-1">
                                 <div class="fw-semibold">{{ step.name }}</div>
