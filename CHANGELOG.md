@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.7e] - 2026-03-19
+
+### Fixed
+- **Discord webhook `KeyError: 'user'`** — added `{user}` and `{flow}` as
+  accepted aliases for `{username}` and `{flow_name}` respectively, so any
+  common placeholder variant works without error.
+
+---
+
+## [0.1.7d] - 2026-03-18
+
+### Fixed
+- **Discord webhook `KeyError` on placeholder with extra whitespace** —
+  `{flow_name }` (trailing space) in a webhook message caused a `KeyError`
+  at send time. Placeholders are now whitespace-normalised before formatting
+  so `{ username }`, `{flow_name }`, etc. all resolve correctly.
+
+---
+
 ## [0.1.7c] - 2026-03-18
 
 ### Added

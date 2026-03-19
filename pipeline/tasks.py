@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 import urllib.error
 import urllib.request
 
@@ -183,9 +184,11 @@ def fire_discord_completion_notification(self, assignment_pk: int) -> None:
 
     errors = []
     for hook in webhooks:
-        message_text = hook.message.format(
-            username=username, flow_name=flow_name
-        ) if hook.message else ""
+        # Normalise whitespace inside placeholder braces so {flow_name } etc. still work
+        raw_message = re.sub(r"\{\s*(\w+)\s*\}", r"{\1}", hook.message) if hook.message else ""
+        message_text = raw_message.format(
+            username=username, user=username, flow_name=flow_name, flow=flow_name
+        ) if raw_message else ""
 
         payload = {"embeds": [embed]}
         if message_text:
