@@ -643,10 +643,15 @@ class FlowAssignment(models.Model):
                 flow.pk,
             )
 
-        # Fire webhook (Phase 4 — stub: just log for now)
+        # Fire generic completion webhook
         if flow.on_complete_webhook_url:
             from .tasks import fire_completion_webhook
             fire_completion_webhook.delay(self.pk)
+
+        # Fire Discord completion notifications
+        if flow.discord_webhooks.filter(enabled=True).exists():
+            from .tasks import fire_discord_completion_notification
+            fire_discord_completion_notification.delay(self.pk)
 
 
 # ---------------------------------------------------------------------------
@@ -696,3 +701,53 @@ class StepCompletion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.assignment.user.username}: {self.step.name}"
+
+
+# ---------------------------------------------------------------------------
+# FlowDiscordWebhook
+# ---------------------------------------------------------------------------
+
+
+class FlowDiscordWebhook(models.Model):
+    """
+    Discord incoming webhook that fires when a user completes this flow.
+
+    Attach one or more webhooks per flow so that different channels (e.g. a
+    general onboarding channel and a leadership channel) can each be notified.
+    A formatted embed is POSTed to each enabled webhook URL.
+    """
+
+    flow = models.ForeignKey(
+        OnboardingFlow,
+        on_delete=models.CASCADE,
+        related_name="discord_webhooks",
+        verbose_name=_("flow"),
+    )
+    webhook_url = models.URLField(
+        _("Discord webhook URL"),
+        help_text=_(
+            "Paste the Discord channel webhook URL "
+            "(Server Settings → Integrations → Webhooks)."
+        ),
+    )
+    message = models.CharField(
+        _("message prefix"),
+        max_length=1000,
+        blank=True,
+        help_text=_(
+            "Optional plain-text message posted above the embed.  "
+            "Supports {username} and {flow_name} placeholders."
+        ),
+    )
+    enabled = models.BooleanField(_("enabled"), default=True)
+
+    class Meta:
+        verbose_name = _("Discord completion webhook")
+        verbose_name_plural = _("Discord completion webhooks")
+        default_permissions = []
+
+    def __str__(self) -> str:
+        truncated = self.webhook_url[:50]
+        if len(self.webhook_url) > 50:
+            truncated += "…"
+        return f"{self.flow.name} → {truncated}"

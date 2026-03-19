@@ -138,6 +138,92 @@ def fire_completion_webhook(self, assignment_pk: int) -> None:
         raise self.retry(exc=exc)
 
 
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def fire_discord_completion_notification(self, assignment_pk: int) -> None:
+    """
+    POST a Discord embed to every enabled FlowDiscordWebhook on the flow.
+
+    Called automatically by ``FlowAssignment._fire_on_complete_actions`` when
+    a user finishes all required steps.  Each webhook receives its own request
+    so one failing channel does not suppress others.
+    """
+    from .models import FlowAssignment
+
+    try:
+        assignment = FlowAssignment.objects.select_related(
+            "flow", "user"
+        ).get(pk=assignment_pk)
+    except FlowAssignment.DoesNotExist:
+        return
+
+    webhooks = list(
+        assignment.flow.discord_webhooks.filter(enabled=True)
+    )
+    if not webhooks:
+        return
+
+    username = assignment.user.username
+    flow_name = assignment.flow.name
+    completed_at = (
+        assignment.completed_at.strftime("%Y-%m-%d %H:%M UTC")
+        if assignment.completed_at
+        else "Unknown"
+    )
+
+    embed = {
+        "title": "Flow Completed",
+        "color": 5763719,  # Discord green
+        "fields": [
+            {"name": "User", "value": username, "inline": True},
+            {"name": "Flow", "value": flow_name, "inline": True},
+            {"name": "Completed", "value": completed_at, "inline": False},
+        ],
+        "footer": {"text": "aa-pipeline"},
+    }
+
+    errors = []
+    for hook in webhooks:
+        message_text = hook.message.format(
+            username=username, flow_name=flow_name
+        ) if hook.message else ""
+
+        payload = {"embeds": [embed]}
+        if message_text:
+            payload["content"] = message_text
+
+        body = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            hook.webhook_url,
+            data=body,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "aa-pipeline-discord/1.0",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                logger.info(
+                    "Pipeline Discord webhook: notified hook pk=%s (HTTP %s) "
+                    "for assignment pk=%s",
+                    hook.pk,
+                    resp.status,
+                    assignment_pk,
+                )
+        except Exception as exc:
+            logger.warning(
+                "Pipeline Discord webhook: failed to notify hook pk=%s "
+                "for assignment pk=%s — %s",
+                hook.pk,
+                assignment_pk,
+                exc,
+            )
+            errors.append(exc)
+
+    if errors:
+        raise self.retry(exc=errors[0])
+
+
 def _notify_user_of_assignment(user, flow) -> None:
     """Send an in-app notification when a flow is auto-assigned to a user."""
     try:

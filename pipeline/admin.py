@@ -33,6 +33,7 @@ from .models import (
     AssignmentStatus,
     CheckFilter,
     FlowAssignment,
+    FlowDiscordWebhook,
     FlowStatus,
     FlowStep,
     OnboardingFlow,
@@ -58,6 +59,19 @@ class StepCheckInline(admin.TabularInline):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("filter__content_type")
+
+
+# ---------------------------------------------------------------------------
+# Inline: FlowDiscordWebhook within OnboardingFlow
+# ---------------------------------------------------------------------------
+
+
+class FlowDiscordWebhookInline(admin.TabularInline):
+    model = FlowDiscordWebhook
+    extra = 1
+    fields = ["webhook_url", "message", "enabled"]
+    verbose_name = _("Discord completion webhook")
+    verbose_name_plural = _("Discord completion webhooks")
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +123,7 @@ class OnboardingFlowAdmin(admin.ModelAdmin):
         "characters",
         "on_complete_add_groups",
     ]
-    inlines = [FlowStepInline]
+    inlines = [FlowStepInline, FlowDiscordWebhookInline]
 
     fieldsets = [
         (
@@ -150,7 +164,11 @@ class OnboardingFlowAdmin(admin.ModelAdmin):
             {
                 "fields": ["on_complete_add_groups", "on_complete_webhook_url"],
                 "classes": ["collapse"],
-                "description": _("Phase 4 — these settings are stored but not yet actioned."),
+                "description": _(
+                    "Add users to groups and/or POST to a generic webhook when this flow is "
+                    "completed.  Discord notifications are configured via the "
+                    "'Discord completion webhooks' inline below."
+                ),
             },
         ),
         (
