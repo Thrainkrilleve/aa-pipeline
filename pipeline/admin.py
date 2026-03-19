@@ -407,7 +407,7 @@ class FlowAssignmentAdmin(ServicesUserAdmin):
     )
     list_filter = ["status", "flow"]
     readonly_fields = ["assigned_at", "completed_at"]
-    actions = ["mark_completed", "reset_to_assigned"]
+    actions = ["mark_completed", "reset_to_assigned", "resend_discord_notifications"]
 
     def get_queryset(self, request):
         return (
@@ -447,6 +447,17 @@ class FlowAssignmentAdmin(ServicesUserAdmin):
             completed_at=None,
         )
         self.message_user(request, _(f"{updated} assignment(s) reset."))
+
+    @admin.action(description=_("Re-send Discord completion notifications"))
+    def resend_discord_notifications(self, request, queryset):
+        from .tasks import fire_discord_completion_notification
+
+        count = 0
+        for assignment in queryset:
+            if assignment.flow.discord_webhooks.filter(enabled=True).exists():
+                fire_discord_completion_notification.delay(assignment.pk)
+                count += 1
+        self.message_user(request, _(f"Queued Discord notifications for {count} assignment(s)."))
 
 
 # ---------------------------------------------------------------------------

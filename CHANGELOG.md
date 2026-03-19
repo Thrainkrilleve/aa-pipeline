@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.7c] - 2026-03-18
+
+### Added
+- **"Re-send Discord completion notifications" admin action** — select any
+  `FlowAssignment` in the Django admin and re-fire the Discord webhook without
+  resetting the assignment state. Useful for testing webhook message formatting.
+
+---
+
 ## [0.1.7b] - 2026-03-18
 
 ### Fixed
