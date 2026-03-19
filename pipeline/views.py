@@ -30,6 +30,7 @@ from .models import (
     StepCompletion,
     StepType,
 )
+from .forms import FlowForm, FlowStepForm
 
 logger = logging.getLogger(__name__)
 
@@ -397,3 +398,196 @@ def step_action(request: WSGIRequest, slug: str, step_pk: int) -> HttpResponse:
             kwargs={"slug": slug, "step_pk": step_pk},
         )
     )
+
+
+# ---------------------------------------------------------------------------
+# Flow Manager (in-app admin UI)
+# ---------------------------------------------------------------------------
+
+def _can_manage(user) -> bool:
+    """True if the user may access the flow manager."""
+    return user.is_superuser or user.has_perm("pipeline.manage_flows")
+
+
+def _require_manage(view_func):
+    """Decorator: must be logged in AND have manage_flows or be superuser."""
+    from functools import wraps
+
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        if not _can_manage(request.user):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
+
+
+@_require_manage
+def manage_index(request: WSGIRequest) -> HttpResponse:
+    """List all flows with management actions."""
+    flows = OnboardingFlow.objects.prefetch_related("steps").order_by("name")
+    context = {
+        "flows": flows,
+        "page_title": _("Manage Flows"),
+        "can_manage": True,
+    }
+    return render(request, "pipeline/manage/index.html", context)
+
+
+@_require_manage
+def manage_flow_create(request: WSGIRequest) -> HttpResponse:
+    """Create a new flow."""
+    if request.method == "POST":
+        form = FlowForm(request.POST)
+        if form.is_valid():
+            flow = form.save()
+            messages.success(request, _(f'Flow "{flow.name}" created successfully.'))
+            return redirect("pipeline:manage_flow_edit", slug=flow.slug)
+    else:
+        form = FlowForm()
+
+    context = {
+        "form": form,
+        "page_title": _("Create Flow"),
+        "action_label": _("Create Flow"),
+        "cancel_url": reverse("pipeline:manage_index"),
+    }
+    return render(request, "pipeline/manage/flow_form.html", context)
+
+
+@_require_manage
+def manage_flow_edit(request: WSGIRequest, slug: str) -> HttpResponse:
+    """Edit an existing flow and manage its steps."""
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+
+    if request.method == "POST":
+        form = FlowForm(request.POST, instance=flow)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _(f'Flow "{flow.name}" saved.'))
+            return redirect("pipeline:manage_flow_edit", slug=flow.slug)
+    else:
+        form = FlowForm(instance=flow)
+
+    steps = flow.steps.order_by("order")
+    context = {
+        "form": form,
+        "flow": flow,
+        "steps": steps,
+        "page_title": _(f"Edit: {flow.name}"),
+        "action_label": _("Save Changes"),
+        "cancel_url": reverse("pipeline:manage_index"),
+    }
+    return render(request, "pipeline/manage/flow_form.html", context)
+
+
+@_require_manage
+def manage_flow_delete(request: WSGIRequest, slug: str) -> HttpResponse:
+    """Confirm and delete a flow."""
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+
+    if request.method == "POST":
+        name = flow.name
+        flow.delete()
+        messages.success(request, _(f'Flow "{name}" deleted.'))
+        return redirect("pipeline:manage_index")
+
+    context = {
+        "flow": flow,
+        "page_title": _(f"Delete: {flow.name}"),
+    }
+    return render(request, "pipeline/manage/flow_confirm_delete.html", context)
+
+
+@_require_manage
+def manage_step_create(request: WSGIRequest, slug: str) -> HttpResponse:
+    """Add a new step to a flow."""
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    next_order = (flow.steps.order_by("-order").values_list("order", flat=True).first() or -1) + 1
+
+    if request.method == "POST":
+        form = FlowStepForm(request.POST)
+        if form.is_valid():
+            step = form.save(commit=False)
+            step.flow = flow
+            step.save()
+            messages.success(request, _(f'Step "{step.name}" added.'))
+            return redirect("pipeline:manage_flow_edit", slug=flow.slug)
+    else:
+        form = FlowStepForm(initial={"order": next_order})
+
+    context = {
+        "form": form,
+        "flow": flow,
+        "page_title": _(f"Add Step to: {flow.name}"),
+        "action_label": _("Add Step"),
+        "cancel_url": reverse("pipeline:manage_flow_edit", kwargs={"slug": slug}),
+    }
+    return render(request, "pipeline/manage/step_form.html", context)
+
+
+@_require_manage
+def manage_step_edit(request: WSGIRequest, slug: str, step_pk: int) -> HttpResponse:
+    """Edit an existing step."""
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    step = get_object_or_404(FlowStep, pk=step_pk, flow=flow)
+
+    if request.method == "POST":
+        form = FlowStepForm(request.POST, instance=step)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _(f'Step "{step.name}" updated.'))
+            return redirect("pipeline:manage_flow_edit", slug=flow.slug)
+    else:
+        form = FlowStepForm(instance=step)
+
+    context = {
+        "form": form,
+        "flow": flow,
+        "step": step,
+        "page_title": _(f"Edit Step: {step.name}"),
+        "action_label": _("Save Step"),
+        "cancel_url": reverse("pipeline:manage_flow_edit", kwargs={"slug": slug}),
+    }
+    return render(request, "pipeline/manage/step_form.html", context)
+
+
+@_require_manage
+def manage_step_delete(request: WSGIRequest, slug: str, step_pk: int) -> HttpResponse:
+    """Confirm and delete a step."""
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    step = get_object_or_404(FlowStep, pk=step_pk, flow=flow)
+
+    if request.method == "POST":
+        name = step.name
+        step.delete()
+        messages.success(request, _(f'Step "{name}" deleted.'))
+        return redirect("pipeline:manage_flow_edit", slug=flow.slug)
+
+    context = {
+        "flow": flow,
+        "step": step,
+        "page_title": _(f"Delete Step: {step.name}"),
+    }
+    return render(request, "pipeline/manage/step_confirm_delete.html", context)
+
+
+@_require_manage
+def manage_flow_publish(request: WSGIRequest, slug: str) -> HttpResponse:
+    """Quick-action: toggle a flow between draft and published."""
+    if request.method != "POST":
+        return redirect("pipeline:manage_index")
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    if flow.status == FlowStatus.PUBLISHED:
+        flow.status = FlowStatus.DRAFT
+        flow.save(update_fields=["status"])
+        messages.info(request, _(f'"{flow.name}" set back to Draft.'))
+    else:
+        flow.status = FlowStatus.PUBLISHED
+        flow.save(update_fields=["status"])
+        messages.success(request, _(f'"{flow.name}" published.'))
+    return redirect("pipeline:manage_index")
+

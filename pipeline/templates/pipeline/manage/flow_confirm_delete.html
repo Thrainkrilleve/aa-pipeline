@@ -1,0 +1,54 @@
+{% extends 'pipeline/base.html' %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Delete Flow" %}{% endblock %}
+
+{% block pipeline_content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h3 class="mb-0 text-danger">
+            <i class="fas fa-trash-alt fa-fw me-2"></i>{% trans "Delete Flow" %}
+        </h3>
+        <a href="{% url 'pipeline:manage_index' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back" %}
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-exclamation-triangle fa-fw me-1"></i>
+                    {% trans "Confirm Deletion" %}
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        {% blocktrans with name=flow.name %}
+                        Are you sure you want to delete the flow <strong>{{ name }}</strong>?
+                        {% endblocktrans %}
+                    </p>
+                    <p class="mb-0 text-body-secondary small">
+                        {% blocktrans with step_count=step_count %}
+                        This will permanently delete <strong>{{ step_count }} step(s)</strong> and all
+                        user-progress records associated with this flow. This action cannot be undone.
+                        {% endblocktrans %}
+                    </p>
+                </div>
+                <div class="card-footer d-flex justify-content-end gap-2">
+                    <a href="{% url 'pipeline:manage_index' %}" class="btn btn-outline-secondary">
+                        {% trans "Cancel" %}
+                    </a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt fa-fw me-1"></i>{% trans "Yes, delete it" %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

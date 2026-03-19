@@ -7,6 +7,15 @@
 {% block pipeline_content %}
 <div class="container-fluid py-3">
 
+    {# ── Manager toolbar ─────────────────────────────────────────────────── #}
+    {% if request.user.is_superuser or perms.pipeline.manage_flows %}
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'pipeline:manage_index' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-sliders fa-fw me-1"></i>{% trans "Manage Flows" %}
+        </a>
+    </div>
+    {% endif %}
+
     {# ── Assigned Flows ─────────────────────────────────────────────────── #}
     {% if assigned_items %}
     <div class="row mb-4">

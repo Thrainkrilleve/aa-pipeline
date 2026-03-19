@@ -25,4 +25,21 @@ urlpatterns = [
         views.step_action,
         name="step_action",
     ),
+    # ── In-app Flow Manager ──────────────────────────────────────────────────
+    path("manage/", views.manage_index, name="manage_index"),
+    path("manage/new/", views.manage_flow_create, name="manage_flow_create"),
+    path("manage/<slug:slug>/edit/", views.manage_flow_edit, name="manage_flow_edit"),
+    path("manage/<slug:slug>/delete/", views.manage_flow_delete, name="manage_flow_delete"),
+    path("manage/<slug:slug>/publish/", views.manage_flow_publish, name="manage_flow_publish"),
+    path("manage/<slug:slug>/steps/new/", views.manage_step_create, name="manage_step_create"),
+    path(
+        "manage/<slug:slug>/steps/<int:step_pk>/edit/",
+        views.manage_step_edit,
+        name="manage_step_edit",
+    ),
+    path(
+        "manage/<slug:slug>/steps/<int:step_pk>/delete/",
+        views.manage_step_delete,
+        name="manage_step_delete",
+    ),
 ]

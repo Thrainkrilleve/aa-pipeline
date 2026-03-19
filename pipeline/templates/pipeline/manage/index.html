@@ -1,0 +1,128 @@
+{% extends 'pipeline/base.html' %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Manage Flows" %}{% endblock %}
+
+{% block pipeline_content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h3 class="mb-0">
+                <i class="fas fa-sliders fa-fw me-2 text-primary"></i>
+                {% trans "Flow Manager" %}
+            </h3>
+            <small class="text-body-secondary">{% trans "Create and manage Pipeline flows" %}</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'pipeline:index' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back to Pipeline" %}
+            </a>
+            <a href="{% url 'pipeline:manage_flow_create' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus fa-fw me-1"></i>{% trans "New Flow" %}
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if flows %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Type" %}</th>
+                        <th>{% trans "Status" %}</th>
+                        <th class="text-center">{% trans "Steps" %}</th>
+                        <th class="text-center">{% trans "Auto-assign" %}</th>
+                        <th class="text-end">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for flow in flows %}
+                    <tr>
+                        <td>
+                            <strong>{{ flow.name }}</strong>
+                            {% if flow.description %}
+                            <br><small class="text-body-secondary">{{ flow.description|truncatewords:12 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge pipeline-badge-type pipeline-type-{{ flow.flow_type }}">
+                                {{ flow.get_flow_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if flow.status == 'published' %}
+                            <span class="badge text-bg-success">{% trans "Published" %}</span>
+                            {% elif flow.status == 'draft' %}
+                            <span class="badge text-bg-warning text-dark">{% trans "Draft" %}</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">{% trans "Archived" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge text-bg-secondary">{{ flow.steps.count }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if flow.auto_assign %}
+                            <i class="fas fa-check text-success"></i>
+                            {% else %}
+                            <i class="fas fa-minus text-body-secondary"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'pipeline:flow_detail' flow.slug %}"
+                                   class="btn btn-outline-secondary" title="{% trans 'Preview' %}">
+                                    <i class="fas fa-eye fa-fw"></i>
+                                </a>
+                                <a href="{% url 'pipeline:manage_flow_edit' flow.slug %}"
+                                   class="btn btn-outline-primary" title="{% trans 'Edit' %}">
+                                    <i class="fas fa-pen fa-fw"></i>
+                                </a>
+                                <form method="post" action="{% url 'pipeline:manage_flow_publish' flow.slug %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn {% if flow.status == 'published' %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                            title="{% if flow.status == 'published' %}{% trans 'Unpublish' %}{% else %}{% trans 'Publish' %}{% endif %}">
+                                        {% if flow.status == 'published' %}
+                                        <i class="fas fa-eye-slash fa-fw"></i>
+                                        {% else %}
+                                        <i class="fas fa-globe fa-fw"></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                <a href="{% url 'pipeline:manage_flow_delete' flow.slug %}"
+                                   class="btn btn-outline-danger" title="{% trans 'Delete' %}">
+                                    <i class="fas fa-trash fa-fw"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-body-secondary">
+        <i class="fas fa-diagram-project fa-3x mb-3 d-block opacity-25"></i>
+        <p class="mb-3">{% trans "No flows yet. Create your first flow to get started." %}</p>
+        <a href="{% url 'pipeline:manage_flow_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus fa-fw me-1"></i>{% trans "Create Flow" %}
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

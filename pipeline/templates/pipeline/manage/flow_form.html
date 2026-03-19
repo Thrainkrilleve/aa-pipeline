@@ -1,0 +1,216 @@
+{% extends 'pipeline/base.html' %}
+{% load i18n %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block pipeline_content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h3 class="mb-0">
+                <i class="fas fa-pen-to-square fa-fw me-2 text-primary"></i>
+                {{ page_title }}
+            </h3>
+            {% if flow %}
+            <small class="text-body-secondary">
+                <a href="{% url 'pipeline:flow_detail' flow.slug %}" class="text-body-secondary">
+                    <i class="fas fa-eye fa-fw me-1"></i>{% trans "Preview" %}
+                </a>
+            </small>
+            {% endif %}
+        </div>
+        <a href="{{ cancel_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back" %}
+        </a>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row g-4">
+
+        {# ── Flow Form ─────────────────────────────────────────────────── #}
+        <div class="col-12 col-xl-7">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-circle-info fa-fw me-1"></i>{% trans "Flow Settings" %}
+                </div>
+                <div class="card-body">
+                    <form method="post" id="flow-form">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.name.label }}
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.slug.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.slug.label }}
+                            </label>
+                            {{ form.slug }}
+                            <div class="form-text">{{ form.slug.help_text }}</div>
+                            {% if form.slug.errors %}
+                            <div class="text-danger small mt-1">{{ form.slug.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label for="{{ form.flow_type.id_for_label }}" class="form-label fw-semibold">
+                                    {{ form.flow_type.label }}
+                                </label>
+                                {{ form.flow_type }}
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">
+                                    {{ form.status.label }}
+                                </label>
+                                {{ form.status }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.body_complete.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.body_complete.label }}
+                            </label>
+                            {{ form.body_complete }}
+                            <div class="form-text">{{ form.body_complete.help_text }}</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.auto_assign }}
+                                <label class="form-check-label fw-semibold" for="{{ form.auto_assign.id_for_label }}">
+                                    {{ form.auto_assign.label }}
+                                </label>
+                                <div class="form-text">{{ form.auto_assign.help_text }}</div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save fa-fw me-1"></i>{{ action_label }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {# ── Audience ─────────────────────────────────────────────── #}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <i class="fas fa-users fa-fw me-1"></i>{% trans "Audience & Visibility" %}
+                </div>
+                <div class="card-body">
+                    <p class="text-body-secondary small mb-3">
+                        {% trans "This flow is shown to users matching at least one of the criteria below. A flow with no audience configured is not visible to anyone." %}
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row g-4">
+                            {% if form.states.field.queryset.exists %}
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label fw-semibold">{% trans "States" %}</label>
+                                {{ form.states }}
+                            </div>
+                            {% endif %}
+                            {% if form.groups.field.queryset.exists %}
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label fw-semibold">{% trans "Groups" %}</label>
+                                {{ form.groups }}
+                            </div>
+                            {% endif %}
+                            {% if form.corporations.field.queryset.exists %}
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label fw-semibold">{% trans "Corporations" %}</label>
+                                {{ form.corporations }}
+                            </div>
+                            {% endif %}
+                            {% if form.alliances.field.queryset.exists %}
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label fw-semibold">{% trans "Alliances" %}</label>
+                                {{ form.alliances }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save fa-fw me-1"></i>{% trans "Save Audience" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# ── Steps Panel ────────────────────────────────────────────────── #}
+        {% if flow %}
+        <div class="col-12 col-xl-5">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span><i class="fas fa-list-ol fa-fw me-1"></i>{% trans "Steps" %}</span>
+                    <a href="{% url 'pipeline:manage_step_create' flow.slug %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus fa-fw me-1"></i>{% trans "Add Step" %}
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if steps %}
+                    <ul class="list-group list-group-flush">
+                        {% for step in steps %}
+                        <li class="list-group-item d-flex align-items-center gap-3">
+                            <span class="badge text-bg-secondary" style="min-width:2rem;">{{ step.order }}</span>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ step.name }}</div>
+                                <small class="text-body-secondary">
+                                    {{ step.get_step_type_display }}
+                                    {% if step.optional %} &middot; <em>{% trans "optional" %}</em>{% endif %}
+                                </small>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'pipeline:manage_step_edit' flow.slug step.pk %}"
+                                   class="btn btn-outline-primary" title="{% trans 'Edit' %}">
+                                    <i class="fas fa-pen fa-fw"></i>
+                                </a>
+                                <a href="{% url 'pipeline:manage_step_delete' flow.slug step.pk %}"
+                                   class="btn btn-outline-danger" title="{% trans 'Delete' %}">
+                                    <i class="fas fa-trash fa-fw"></i>
+                                </a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center py-4 text-body-secondary">
+                        <i class="fas fa-list-ol fa-2x mb-2 d-block opacity-25"></i>
+                        <p class="small mb-2">{% trans "No steps yet." %}</p>
+                        <a href="{% url 'pipeline:manage_step_create' flow.slug %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus fa-fw me-1"></i>{% trans "Add First Step" %}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
