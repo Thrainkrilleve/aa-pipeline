@@ -631,7 +631,33 @@ class FlowAssignment(models.Model):
             self.status = AssignmentStatus.COMPLETED
             self.completed_at = timezone.now()
             self.save(update_fields=["status", "completed_at"])
+            self._stamp_all_step_completions()
             self._fire_on_complete_actions()
+
+    def _stamp_all_step_completions(self) -> None:
+        """
+        Ensure a StepCompletion record exists for every completed step.
+
+        Acknowledgement steps already create their own records when the user
+        clicks confirm.  This method fills in filter_check and service_check
+        steps (which are evaluated dynamically and never self-record) so that
+        the admin Step Completions list reflects every step in the flow.
+        """
+        existing_ids = set(
+            self.step_completions.values_list("step_id", flat=True)
+        )
+        to_create = [
+            StepCompletion(
+                assignment=self,
+                step=step,
+                completed_by=self.user,
+                metadata={"auto_recorded": True, "step_type": step.step_type},
+            )
+            for step in self.flow.steps.all()
+            if step.pk not in existing_ids and step.is_complete(self.user, self)
+        ]
+        if to_create:
+            StepCompletion.objects.bulk_create(to_create, ignore_conflicts=True)
 
     def _fire_on_complete_actions(self) -> None:
         """Execute any on-complete automation configured on the flow."""

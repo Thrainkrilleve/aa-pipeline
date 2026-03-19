@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.9] - 2026-03-19
+
+### Fixed
+- **Step Completions missing for filter_check and service_check steps** —
+  only acknowledgement steps self-recorded a `StepCompletion` row; filter and
+  service steps were evaluated dynamically and never stored. When a flow is
+  marked complete, completion records are now stamped for every step that
+  doesn’t already have one (stored with `"auto_recorded": true` in the
+  `metadata` field so they are distinguishable from user-clicked
+  acknowledgements). This gives a full audit trail in the Step Completions
+  admin for all step types.
+
+---
+
 ## [0.1.8] - 2026-03-19
 
 ### Added
