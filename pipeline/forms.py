@@ -34,12 +34,12 @@ class FlowForm(forms.ModelForm):
             "flow_type": forms.Select(attrs={"class": "form-select"}),
             "status": forms.Select(attrs={"class": "form-select"}),
             "auto_assign": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "states": forms.CheckboxSelectMultiple(),
-            "groups": forms.CheckboxSelectMultiple(),
-            "corporations": forms.CheckboxSelectMultiple(),
-            "alliances": forms.CheckboxSelectMultiple(),
-            "factions": forms.CheckboxSelectMultiple(),
-            "characters": forms.CheckboxSelectMultiple(),
+            "states": forms.SelectMultiple(attrs={"class": "form-select pipeline-multiselect", "size": "7"}),
+            "groups": forms.SelectMultiple(attrs={"class": "form-select pipeline-multiselect", "size": "7"}),
+            "corporations": forms.SelectMultiple(attrs={"class": "form-select pipeline-multiselect", "size": "7"}),
+            "alliances": forms.SelectMultiple(attrs={"class": "form-select pipeline-multiselect", "size": "7"}),
+            "factions": forms.SelectMultiple(attrs={"class": "form-select pipeline-multiselect", "size": "7"}),
+            "characters": forms.SelectMultiple(attrs={"class": "form-select pipeline-multiselect", "size": "7"}),
         }
         help_texts = {
             "slug": _("Leave blank to auto-generate from the name."),

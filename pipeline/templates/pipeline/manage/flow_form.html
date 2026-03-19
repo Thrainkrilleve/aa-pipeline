@@ -120,36 +120,71 @@
                     <i class="fas fa-users fa-fw me-1"></i>{% trans "Audience & Visibility" %}
                 </div>
                 <div class="card-body">
-                    <p class="text-body-secondary small mb-3">
+                    <p class="text-body-secondary small mb-1">
                         {% trans "This flow is shown to users matching at least one of the criteria below. A flow with no audience configured is not visible to anyone." %}
+                    </p>
+                    <p class="text-body-secondary small mb-3">
+                        <i class="fas fa-info-circle fa-fw me-1"></i>
+                        {% trans "Hold Ctrl (or ⌘ on Mac) to select multiple items. Click a selected item to deselect it." %}
                     </p>
                     <form method="post">
                         {% csrf_token %}
                         <div class="row g-4">
+
                             {% if form.states.field.queryset.exists %}
                             <div class="col-12 col-sm-6">
                                 <label class="form-label fw-semibold">{% trans "States" %}</label>
+                                <input type="text" class="form-control form-control-sm mb-1 pipeline-multiselect-search"
+                                       placeholder="{% trans 'Filter…' %}" aria-label="{% trans 'Filter states' %}">
                                 {{ form.states }}
                             </div>
                             {% endif %}
+
                             {% if form.groups.field.queryset.exists %}
                             <div class="col-12 col-sm-6">
                                 <label class="form-label fw-semibold">{% trans "Groups" %}</label>
+                                <input type="text" class="form-control form-control-sm mb-1 pipeline-multiselect-search"
+                                       placeholder="{% trans 'Filter…' %}" aria-label="{% trans 'Filter groups' %}">
                                 {{ form.groups }}
                             </div>
                             {% endif %}
+
                             {% if form.corporations.field.queryset.exists %}
                             <div class="col-12 col-sm-6">
                                 <label class="form-label fw-semibold">{% trans "Corporations" %}</label>
+                                <input type="text" class="form-control form-control-sm mb-1 pipeline-multiselect-search"
+                                       placeholder="{% trans 'Filter…' %}" aria-label="{% trans 'Filter corporations' %}">
                                 {{ form.corporations }}
                             </div>
                             {% endif %}
+
                             {% if form.alliances.field.queryset.exists %}
                             <div class="col-12 col-sm-6">
                                 <label class="form-label fw-semibold">{% trans "Alliances" %}</label>
+                                <input type="text" class="form-control form-control-sm mb-1 pipeline-multiselect-search"
+                                       placeholder="{% trans 'Filter…' %}" aria-label="{% trans 'Filter alliances' %}">
                                 {{ form.alliances }}
                             </div>
                             {% endif %}
+
+                            {% if form.factions.field.queryset.exists %}
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label fw-semibold">{% trans "Factions" %}</label>
+                                <input type="text" class="form-control form-control-sm mb-1 pipeline-multiselect-search"
+                                       placeholder="{% trans 'Filter…' %}" aria-label="{% trans 'Filter factions' %}">
+                                {{ form.factions }}
+                            </div>
+                            {% endif %}
+
+                            {% if form.characters.field.queryset.exists %}
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label fw-semibold">{% trans "Characters" %}</label>
+                                <input type="text" class="form-control form-control-sm mb-1 pipeline-multiselect-search"
+                                       placeholder="{% trans 'Filter…' %}" aria-label="{% trans 'Filter characters' %}">
+                                {{ form.characters }}
+                            </div>
+                            {% endif %}
+
                         </div>
                         <div class="mt-3">
                             <button type="submit" class="btn btn-primary">
@@ -213,4 +248,22 @@
 
     </div>
 </div>
+
+{% block extra_javascript %}
+<script>
+(function () {
+    "use strict";
+    document.querySelectorAll(".pipeline-multiselect-search").forEach(function (input) {
+        var select = input.nextElementSibling;
+        if (!select || select.tagName !== "SELECT") return;
+        input.addEventListener("input", function () {
+            var q = this.value.toLowerCase();
+            Array.from(select.options).forEach(function (opt) {
+                opt.hidden = q !== "" && !opt.text.toLowerCase().includes(q);
+            });
+        });
+    });
+}());
+</script>
+{% endblock %}
 {% endblock %}

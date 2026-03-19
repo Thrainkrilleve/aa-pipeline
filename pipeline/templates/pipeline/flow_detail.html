@@ -13,10 +13,6 @@
 {% endblock header_nav_brand %}
 
 {% block pipeline_content %}
-
-{# ===== Top Progress Strip ===================================================
-   Sticky at the top of the scroll area — visible at all times while scrolling.
-   ========================================================================== #}
 <div class="pipeline-progress-strip" aria-label="{% trans 'Flow progress' %}">
     <div class="progress rounded-0" style="height: 3px;" role="progressbar"
          aria-valuenow="{{ total_pct }}" aria-valuemin="0" aria-valuemax="100"

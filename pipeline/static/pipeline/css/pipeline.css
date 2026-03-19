@@ -13,6 +13,8 @@
     top: 0;
     z-index: 100;
     background-color: var(--bs-body-bg);
+    /* offset the my-3 top margin so the strip truly sticks at the top of .nav-padding */
+    margin-top: -1rem;
     /* subtle bottom shadow to lift it off the content */
     box-shadow: 0 1px 0 0 var(--bs-border-color);
 }
