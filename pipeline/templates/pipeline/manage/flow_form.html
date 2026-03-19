@@ -43,7 +43,7 @@
                     <i class="fas fa-circle-info fa-fw me-1"></i>{% trans "Flow Settings" %}
                 </div>
                 <div class="card-body">
-                    <form method="post" id="flow-form">
+                    <form method="post" id="flow-form" novalidate>
                         {% csrf_token %}
 
                         <div class="mb-3">
@@ -110,7 +110,6 @@
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save fa-fw me-1"></i>{{ action_label }}
                         </button>
-                    </form>
                 </div>
             </div>
 
@@ -127,8 +126,6 @@
                         <i class="fas fa-info-circle fa-fw me-1"></i>
                         {% trans "Hold Ctrl (or ⌘ on Mac) to select multiple items. Click a selected item to deselect it." %}
                     </p>
-                    <form method="post">
-                        {% csrf_token %}
                         <div class="row g-4">
 
                             {% if form.states.field.queryset.exists %}
@@ -188,13 +185,13 @@
                         </div>
                         <div class="mt-3">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save fa-fw me-1"></i>{% trans "Save Audience" %}
+                                <i class="fas fa-save fa-fw me-1"></i>{{ action_label }}
                             </button>
                         </div>
-                    </form>
                 </div>
             </div>
         </div>
+    </form>
 
         {# ── Steps Panel ────────────────────────────────────────────────── #}
         {% if flow %}
