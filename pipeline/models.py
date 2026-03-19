@@ -71,7 +71,7 @@ class CheckFilter(models.Model):
         default_permissions = []
 
     content_type = models.ForeignKey(
-        ContentType, on_delete=models.CASCADE, editable=False
+        ContentType, on_delete=models.CASCADE, editable=False, related_name="pipeline_checkfilter_set"
     )
     object_id = models.PositiveIntegerField(editable=False)
     filter_object = GenericForeignKey("content_type", "object_id")
