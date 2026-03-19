@@ -52,7 +52,7 @@ This installs `markdown` and `bleach` automatically when running `docker compose
 2. Add to your `requirements.txt`:
 
    ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.4
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.5
    ```
 
 3. Add `"pipeline"` to `INSTALLED_APPS` in your Alliance Auth settings file (e.g. `local.py`):
@@ -66,7 +66,7 @@ This installs `markdown` and `bleach` automatically when running `docker compose
 4. Run migrations and collect static files:
 
    ```bash
-   docker compose exec allianceauth_gunicorn bash "auth migrate && auth collectstatic --noinput"
+   docker compose exec allianceauth_gunicorn bash -c "auth migrate && auth collectstatic --noinput"
    ```
 
 5. Rebuild the image:
@@ -97,7 +97,7 @@ No required settings. Optional:
 4. For `filter_check` steps, add **Smart Filter checks** — if your filters were registered before pipeline was installed, run the sync command first:
 
    ```bash
-   docker compose exec allianceauth_gunicorn auth pipeline_sync_filters
+   docker compose exec allianceauth_gunicorn python manage.py pipeline_sync_filters
    ```
 
 5. Configure **Audience & Visibility** (the flow won't appear until at least one audience dimension is set).
