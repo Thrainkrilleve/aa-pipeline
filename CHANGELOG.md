@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.7] - 2026-03-18
+
+### Added
+- **Discord completion webhooks** — attach one or more Discord incoming webhooks
+  per flow. When a user completes all required steps, each enabled webhook
+  receives a formatted embed (user, flow name, completion timestamp). The
+  `FlowDiscordWebhook` model is managed via an inline on the flow's Admin page
+  (Server Settings → Integrations → Webhooks URL).
+- **`fire_discord_completion_notification` Celery task** — POSTs to each
+  enabled Discord webhook independently so one failing channel does not
+  suppress the others. Retries up to 3 times on failure.
+
+### Fixed
+- **Audience fields blank when editing a flow** — the manage page used two
+  separate `<form>` elements; the flow-settings form did not include the M2M
+  audience fields, so every save wiped the configured audience. Merged into a
+  single form so all fields are submitted together.
+
+---
+
 ## [0.1.6] - 2026-03-18
 
 ### Added
@@ -170,6 +190,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `basic_access` and `manage_flows` app-level permissions.
 - Bootstrap 5 / Font Awesome UI consistent with the AA default theme.
 
+[0.1.7]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.3...v0.1.4

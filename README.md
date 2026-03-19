@@ -1,22 +1,25 @@
 # aa-pipeline
 
-> A structured journey system for [Alliance Auth](https://allianceauth.readthedocs.io/) — generalised onboarding, training, certification, and vetting flows.
+> A structured journey system for [Alliance Auth](https://allianceauth.readthedocs.io/) — onboarding, training, certification, and vetting flows.
 
-`aa-pipeline` is a complete reimagining of `allianceauth-workflows`. It replaces the concept of a "wizard" with fully configurable **Flows** made up of ordered **Steps**, with built-in support for Smart Filter checks, user acknowledgements, and service account verification.
+`aa-pipeline` provides fully configurable **Flows** made up of ordered **Steps**, with built-in support for Smart Filter checks, user acknowledgements, service account verification, and on-complete automation.
 
 ---
 
-## Features (Phase 1)
+## Features
 
 - **Three step types**
-  - `filter_check` — automatically evaluated against Smart Filters (no manual action required)
+  - `filter_check` — automatically evaluated against configured Smart Filters
   - `acknowledgement` — user reads content and clicks Confirm
-  - `service_check` — verifies an active Discord / Mumble / TeamSpeak / etc. account via a runtime service registry
-- **Flow lifecycle** — `draft` → `published` → `archived`
+  - `service_check` — verifies an active service account (Discord, Mumble, TeamSpeak, etc.) via the runtime service registry
+- **Flow lifecycle** — `draft` → `published` → `archived` (with restore to draft)
 - **Flow types** — Onboarding, Training, Certification, Vetting, Industry, Other
 - **Audience targeting** — States, Groups, Corporations, Alliances, Factions, Characters
-- **Auto-assignment** — flows can be automatically assigned when a user's profile changes
-- **On-complete automation** — add to groups, fire a webhook (Phase 4)
+- **Auto-assignment** — flows are assigned automatically when a user's profile, groups, or characters change
+- **On-complete automation** — add users to groups and fire a signed webhook when a flow is completed
+- **In-app flow manager** — create, edit, publish, archive, and reorder flows and steps without Django Admin
+- **Smart Filter check editor** — attach and reorder Smart Filter checks per step in-app
+- **Signed webhooks** — outgoing HTTP POST payloads include an `X-Pipeline-Signature` HMAC-SHA256 header for receiver verification
 - **GDPR hook** — integrates with [aa-gdpr](https://apps.allianceauth.org/apps/detail/aa-gdpr) for data export and deletion
 - **Alliance Auth theme compatible** — Bootstrap 5, dark-mode support, mobile responsive
 
@@ -27,35 +30,21 @@
 - Python >= 3.10
 - Alliance Auth >= 4.3.1, < 5
 
-**Optional — Markdown rendering:**
-
-To enable Markdown rendering for step body text, use the `[markdown]` extra in your `requirements.txt`:
-
-```
-aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git
-```
-
-This installs `markdown` and `bleach` automatically when running `docker compose build`. If installing manually, add both packages to your environment separately.
-
 ---
 
 ## Installation
 
-### Docker (recommended)
+See the [Alliance Auth plugin installation docs](https://allianceauth.readthedocs.io/en/v4.13.1/) for general guidance.
 
-1. Install:
-
-   ```bash
-   docker compose exec allianceauth_gunicorn pip install "aa-pipeline @ git+https://github.com/Thrainkrilleve/aa-pipeline.git"
-   ```
-
-2. Add to your `requirements.txt`:
+1. Add `aa-pipeline` to your `requirements.txt`:
 
    ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.6
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.7
    ```
 
-3. Add `"pipeline"` to `INSTALLED_APPS` in your Alliance Auth settings file (e.g. `local.py`):
+   The `[markdown]` extra installs `markdown` and `bleach` to enable Markdown rendering in step body text. Without it, body text is displayed as plain text.
+
+2. Add `"pipeline"` to `INSTALLED_APPS` in your Alliance Auth settings file (e.g. `local.py`):
 
    ```python
    INSTALLED_APPS += [
@@ -63,46 +52,60 @@ This installs `markdown` and `bleach` automatically when running `docker compose
    ]
    ```
 
-4. Run migrations and collect static files:
-
-   ```bash
-   docker compose exec allianceauth_gunicorn bash -c "auth migrate && auth collectstatic --noinput"
-   ```
-
-5. Rebuild the image:
+3. Rebuild the image, run migrations, and collect static files:
 
    ```bash
    docker compose build
+   docker compose exec allianceauth_gunicorn bash -c "auth migrate && auth collectstatic --noinput"
+   docker compose up -d
    ```
 
-6. Assign the `pipeline | Can access this app` permission to the groups or states that should see the menu item.
+4. In Django Admin, assign the `pipeline | Can access this app` permission to the groups or states that should see the Pipeline menu item.
+
+---
+
+## Updating
+
+1. Update the version pin in your `requirements.txt`:
+
+   ```
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.7
+   ```
+
+2. Rebuild and apply any new migrations:
+
+   ```bash
+   docker compose build
+   docker compose exec allianceauth_gunicorn bash -c "auth migrate && auth collectstatic --noinput"
+   docker compose up -d
+   ```
 
 ---
 
 ## Configuration
 
-No required settings. Optional:
-
-| Setting | Default | Description |
-|---|---|---|
-| *(none in Phase 1)* | | |
+No required settings.
 
 ---
 
 ## Usage
 
-1. In the Django Admin (or via the in-app **Manage Flows** button for users with the `manage_flows` permission), create a flow.
-2. Set the **Status** to `Draft` while building.
-3. Add steps with the inline step editor.
-4. For `filter_check` steps, add **Smart Filter checks** — if your filters were registered before pipeline was installed, run the sync command first:
+### Setting up a flow
+
+1. Click **Manage Flows** in the Pipeline menu (requires the `pipeline | Can manage flows` permission or superuser access).
+2. Create a flow and set its **Status** to `Draft` while building.
+3. Add and reorder steps using the step editor.
+4. For `filter_check` steps, add Smart Filter checks in the *Smart Filter Checks* card on the step form.
+   If your Smart Filters were registered before Pipeline was installed, sync them first:
 
    ```bash
    docker compose exec allianceauth_gunicorn python manage.py pipeline_sync_filters
    ```
 
-5. Configure **Audience & Visibility** (the flow won't appear until at least one audience dimension is set).
-6. Change Status to `Published`.
-7. Users matching the audience will see the flow on their Pipeline page.
+5. Configure **Audience & Visibility** — the flow won't appear to users until at least one audience dimension is set.
+6. Change **Status** to `Published`.
+
+Users matching the configured audience will see the flow on their Pipeline page and will be auto-assigned if **Auto Assign** is enabled.
 
 ---
 
