@@ -27,25 +27,35 @@
 - Python >= 3.10
 - Alliance Auth >= 4.3.1, < 5
 
-**Optional:**
+**Optional — Markdown rendering:**
+
+To enable Markdown rendering for step body text, use the `[markdown]` extra in your `requirements.txt`:
 
 ```
-pip install aa-pipeline
+aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git
 ```
 
-Installs `markdown` and `bleach` so step body text is rendered as Markdown.
+This installs `markdown` and `bleach` automatically when running `docker compose build`. If installing manually, add both packages to your environment separately.
 
 ---
 
 ## Installation
 
-1. Install the package:
+### Docker (recommended)
+
+1. Install:
 
    ```bash
-   aa-pipeline[markdown]
+   docker compose exec allianceauth_gunicorn pip install "aa-pipeline @ git+https://github.com/Thrainkrilleve/aa-pipeline.git"
    ```
 
-2. Add to `INSTALLED_APPS` in your Alliance Auth settings:
+2. Add to your `requirements.txt`:
+
+   ```
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.1
+   ```
+
+3. Add `"pipeline"` to `INSTALLED_APPS` in your Alliance Auth settings file (e.g. `local.py`):
 
    ```python
    INSTALLED_APPS += [
@@ -53,19 +63,19 @@ Installs `markdown` and `bleach` so step body text is rendered as Markdown.
    ]
    ```
 
-3. Run migrations:
+4. Run migrations and collect static files:
 
    ```bash
-   python manage.py migrate pipeline
+   docker compose exec allianceauth_gunicorn bash "auth migrate && auth collectstatic --noinput"
    ```
 
-4. Collect static files:
+5. Rebuild the image:
 
    ```bash
-   python manage.py collectstatic
+   docker compose build
    ```
 
-5. Assign the `pipeline | Can access this app` permission to the groups or states that should see the menu item.
+6. Assign the `pipeline | Can access this app` permission to the groups or states that should see the menu item.
 
 ---
 
