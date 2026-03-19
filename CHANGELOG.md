@@ -1,0 +1,179 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.1.6] - 2026-03-18
+
+### Added
+- **Smart Filter check management in the step editor** — when editing a
+  `filter_check` step, a *Smart Filter Checks* card now appears below the step
+  settings form. Managers can add checks (filter, optional label, display order)
+  and delete them without leaving the in-app UI. The card is hidden via JS when
+  the step type is changed to `acknowledgement` or `service_check`.
+- **Step reordering** — up/down chevron buttons in the flow editor let managers
+  move steps without editing each one individually (`manage_step_reorder` view
+  and URL pattern).
+- **Assignment statistics on the manage index** — the flow table now shows
+  *Active* (assigned + in-progress) and *Completed* user counts, annotated in
+  a single database query.
+- **Restore archived flows** — the publish toggle now handles all three states:
+  Published → Draft, Archived → Draft (restore), Draft → Published. An archived
+  flow can be recovered without recreating it.
+
+### Changed
+- **Webhook is now fully implemented** — `fire_completion_webhook` Celery task
+  POSTs a JSON payload (`user_id`, `username`, `flow_id`, `flow_name`,
+  `flow_slug`, `completed_at`) to the configured URL. The request includes an
+  `X-Pipeline-Signature: sha256=<hmac>` header so receivers can verify
+  authenticity. The task retries on HTTP or network errors.
+- **`FlowStep.effective_type` is now a `cached_property`** — service registry
+  lookups are performed at most once per step instance per request cycle,
+  eliminating two redundant `apps.get_app_config()` calls per step on every
+  page load.
+- **Manage index no longer issues N+1 queries** — `step_count`, `active_count`,
+  and `completed_count` are computed with a single annotated queryset instead
+  of a separate `COUNT(*)` hit per row.
+
+### Fixed
+- **Service check fallback always firing** — `is_service_installed()` was
+  calling `apps.is_installed()` which requires the full dotted module path
+  (e.g. `"allianceauth.services.modules.discord"`), not the short app label
+  (`"discord"`). All call sites in `service_registry.py` now use
+  `apps.get_app_config(label)` inside a `try/except LookupError`, so installed
+  services are correctly detected.
+- **Draft preview returning 403 for flow managers** — `flow_detail` previously
+  only allowed `is_staff` or `is_superuser` to preview draft flows. Users
+  holding the `manage_flows` permission can now preview drafts too.
+
+---
+
+## [0.1.5] - 2026-03-18
+
+### Fixed
+- **Visible template comment** — a multi-line Django `{# … #}` comment block in
+  `flow_detail.html` was rendering as literal text to the user. Removed.
+- **Progress strip gap** — Alliance Auth's base template wraps `{% block content %}`
+  in a `<div class="my-3">` which pushed the progress strip away from the page
+  top. Fixed with `margin-top: -1rem` on `.pipeline-progress-strip` in
+  `pipeline.css`.
+
+### Changed
+- **Audience fields replaced with scrollable multi-selects** — all six audience
+  fields (`states`, `groups`, `corporations`, `alliances`, `factions`,
+  `characters`) in the flow form were changed from `CheckboxSelectMultiple` to
+  `SelectMultiple` with a fixed `size="7"`. Each field now has a live filter
+  input above it and a Ctrl/Cmd hint below it.
+- Previously missing `factions` and `characters` audience fields added to
+  `flow_form.html`.
+
+---
+
+## [0.1.4] - 2026-03-18
+
+### Added
+- **`pipeline_sync_filters` management command** — populates the `CheckFilter`
+  catalog by iterating all registered `secure_group_filters` hooks. Use this
+  after installing new Smart Filter apps.
+
+### Fixed
+- **`manage/` 404** — URL patterns were ordered so that the `<slug:slug>/`
+  catch-all matched `/manage/` before the manage routes. Fixed by moving all
+  `manage/*` patterns above the slug patterns.
+- **`StepCompletionAdmin` 500 on save** — the admin was attempting to
+  auto-create assignments via a signal path that did not exist at save time.
+  Resolved by registering `StepCompletionAdmin` with correct inline/fieldset
+  configuration.
+- **`CheckFilterAdmin` add form blank** — the add form showed no filter choices
+  because the queryset was not being loaded. Fixed by overriding `get_form()`
+  to populate the content-type queryset correctly.
+
+---
+
+## [0.1.3] - 2026-03-18
+
+### Added
+- **In-app flow manager** — superusers and users in the `manage_flows`
+  permission group can now create, edit, publish/unpublish, and delete flows
+  and their steps entirely within the app, without needing Django admin access.
+  Accessible at `/pipeline/manage/`.
+
+---
+
+## [0.1.2] - 2026-03-18
+
+### Fixed
+- **`CheckFilter.content_type` `related_name` clash** — added
+  `related_name="pipeline_checkfilter_set"` to avoid a Django system-check
+  error when `allianceauth-secure-groups` (or the `workflows` app) is installed
+  alongside Pipeline.
+
+---
+
+## [0.1.1] - 2026-03-18
+
+### Changed
+- Updated README installation instructions and pip install command.
+
+---
+
+## [0.1.0] - 2026-03-18
+
+### Added
+- Initial release of **aa-pipeline** — a structured journey/onboarding system
+  for Alliance Auth.
+- `OnboardingFlow` model with name, slug, description, type (`onboarding`,
+  `training`, `certification`, `vetting`, `industry`, `other`), status
+  lifecycle (`draft` → `published` → `archived`), and `auto_assign` flag.
+- Audience targeting via M2M relations to AA States, Groups, Corporations,
+  Alliances, Factions, and Characters — exactly matching the Wizard model
+  pattern.
+- `FlowStep` model with three step types:
+  - `filter_check` — completion determined by Smart Filter evaluation.
+  - `acknowledgement` — user reads body and clicks confirm.
+  - `service_check` — checks whether the user has an active account in a
+    registered AA service (Discord, Mumble, TeamSpeak, IPS Forum, XenForo,
+    Openfire); falls back to acknowledgement mode when the service is not
+    installed.
+- `StepCheck` model — binds a `CheckFilter` (Smart Filter) to a `filter_check`
+  step; multiple checks may be attached and all must pass.
+- `CheckFilter` model — generic ContentType/object_id binding to any registered
+  Smart Filter object, mirroring the `allianceauth-secure-groups` catalog
+  pattern.
+- `FlowAssignment` model — tracks per-user assignment status (`assigned` →
+  `in_progress` → `completed`) with timestamps.
+- `StepCompletion` model — records self-guided step completions
+  (acknowledgements and service-check fallbacks) with a `metadata` JSON field.
+- On-complete automation: add user to configured groups and fire a webhook URL
+  when a flow is marked complete.
+- `service_registry.py` — runtime lookup of installed AA service apps; guards
+  all checks with `apps.get_app_config()` so no hard dependencies on optional
+  service apps are introduced.
+- Celery tasks: `process_autoassign_for_user` (auto-assign eligible flows when
+  a user's profile changes) and `fire_completion_webhook`.
+- Signals: auto-assignment triggers on `UserProfile`, `User.groups`, and
+  `CharacterOwnership` changes; Smart Filter catalog maintenance on object
+  create/delete.
+- `FlowManager` — `get_visible_for_user()` and `get_auto_assignable_for_user()`
+  queryset helpers.
+- User-facing `flow_detail` view with sidebar step navigation, per-step
+  progress indicators, Markdown body rendering (with Bleach sanitisation when
+  available), and a sticky top progress strip.
+- App index (`/pipeline/`) listing assigned and visible flows with completion
+  percentages and a dashboard widget hook.
+- Alliance Auth integration: menu entry, dashboard widget, URL registration,
+  and GDPR data export hooks via `auth_hooks.py`.
+- `basic_access` and `manage_flows` app-level permissions.
+- Bootstrap 5 / Font Awesome UI consistent with the AA default theme.
+
+[0.1.6]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.5...v0.1.6
+[0.1.5]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/Thrainkrilleve/aa-pipeline/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/Thrainkrilleve/aa-pipeline/releases/tag/v0.1.0
