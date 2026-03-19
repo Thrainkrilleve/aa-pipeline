@@ -17,13 +17,16 @@ admins full control without leaving the flow change page.
 import json
 
 # Django
+from django import forms
 from django.contrib import admin
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 # Alliance Auth
+from allianceauth import hooks
 from allianceauth.services.admin import ServicesUserAdmin
 
 from .models import (
@@ -285,11 +288,89 @@ class FlowStepAdmin(admin.ModelAdmin):
 # ---------------------------------------------------------------------------
 
 
+def _get_filter_choices():
+    """Return (value, label) choices for all registered Smart Filter objects."""
+    choices = [("" , "---------")]
+    for app_hook in hooks.get_hooks("secure_group_filters"):
+        for filter_model in app_hook():
+            ct = ContentType.objects.get_for_model(filter_model)
+            label_prefix = f"{ct.app_label}.{ct.model}"
+            for obj in filter_model.objects.order_by("pk"):
+                choices.append((f"{ct.pk}:{obj.pk}", f"{label_prefix}: {obj}"))
+    return choices
+
+
+class CheckFilterForm(forms.ModelForm):
+    """
+    Custom form that presents a flat dropdown of all registered Smart Filter
+    objects so an admin can register an existing filter into the catalog.
+    """
+
+    filter_object_choice = forms.ChoiceField(
+        label=_("Smart Filter Object"),
+        help_text=_(
+            "Select a Smart Filter object to register in the Pipeline catalog.  "
+            "Objects already registered are shown but cannot be re-added."
+        ),
+        choices=[],
+    )
+
+    class Meta:
+        model = CheckFilter
+        fields = []  # content_type / object_id are editable=False; set in save()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        existing = set(
+            CheckFilter.objects.exclude(pk=self.instance.pk if self.instance.pk else None)
+            .values_list("content_type_id", "object_id")
+        )
+        choices = [("" , "---------")]
+        for app_hook in hooks.get_hooks("secure_group_filters"):
+            for filter_model in app_hook():
+                ct = ContentType.objects.get_for_model(filter_model)
+                label_prefix = f"{ct.app_label}.{ct.model}"
+                for obj in filter_model.objects.order_by("pk"):
+                    value = f"{ct.pk}:{obj.pk}"
+                    already = (ct.pk, obj.pk) in existing
+                    display = f"{label_prefix}: {obj}" + (" [already registered]" if already else "")
+                    choices.append((value, display))
+        self.fields["filter_object_choice"].choices = choices
+        # Pre-select current binding when editing
+        if self.instance.pk:
+            self.fields["filter_object_choice"].initial = (
+                f"{self.instance.content_type_id}:{self.instance.object_id}"
+            )
+
+    def clean_filter_object_choice(self):
+        value = self.cleaned_data.get("filter_object_choice")
+        if not value:
+            raise forms.ValidationError(_("Please select a Smart Filter object."))
+        try:
+            ct_pk, obj_pk = value.split(":")
+            int(ct_pk); int(obj_pk)
+        except (ValueError, TypeError):
+            raise forms.ValidationError(_("Invalid selection."))
+        return value
+
+    def save(self, commit=True):
+        value = self.cleaned_data["filter_object_choice"]
+        ct_pk, obj_pk = value.split(":")
+        self.instance.content_type_id = int(ct_pk)
+        self.instance.object_id = int(obj_pk)
+        return super().save(commit=commit)
+
+
 @admin.register(CheckFilter)
 class CheckFilterAdmin(admin.ModelAdmin):
+    form = CheckFilterForm
     list_display = ["__str__", "content_type", "object_id"]
     search_fields = ["content_type__app_label", "content_type__model"]
-    readonly_fields = ["content_type", "object_id"]
+    readonly_fields = []
+
+    def has_change_permission(self, request, obj=None):
+        # Editing an existing entry is effectively re-pointing it; allow it.
+        return super().has_change_permission(request, obj)
 
 
 # ---------------------------------------------------------------------------
@@ -356,28 +437,36 @@ class FlowAssignmentAdmin(ServicesUserAdmin):
 
 
 @admin.register(StepCompletion)
-class StepCompletionAdmin(ServicesUserAdmin):
-    search_fields = ServicesUserAdmin.search_fields + (
+class StepCompletionAdmin(admin.ModelAdmin):
+    search_fields = (
+        "assignment__user__username",
         "assignment__flow__name",
         "step__name",
     )
-    list_display = ServicesUserAdmin.list_display + (
+    list_display = (
+        "user_display",
         "flow_name",
         "step",
         "completed_at",
         "metadata_preview",
     )
     list_filter = ["assignment__flow", "step__step_type"]
+    ordering = ["-completed_at"]
     readonly_fields = ["completed_at", "assignment", "step", "completed_by", "metadata"]
+    list_select_related = True
 
     def get_queryset(self, request):
         return (
             super()
             .get_queryset(request)
-            .select_related("assignment__flow", "assignment__user__profile", "step")
+            .select_related("assignment__flow", "assignment__user", "step")
         )
 
-    @admin.display(description=_("Flow"))
+    @admin.display(description=_("User"), ordering="assignment__user__username")
+    def user_display(self, obj):
+        return obj.assignment.user.username
+
+    @admin.display(description=_("Flow"), ordering="assignment__flow__name")
     def flow_name(self, obj):
         return obj.assignment.flow.name
 

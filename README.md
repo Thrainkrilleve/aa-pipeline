@@ -52,7 +52,7 @@ This installs `markdown` and `bleach` automatically when running `docker compose
 2. Add to your `requirements.txt`:
 
    ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.2
+   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.4
    ```
 
 3. Add `"pipeline"` to `INSTALLED_APPS` in your Alliance Auth settings file (e.g. `local.py`):
@@ -91,12 +91,18 @@ No required settings. Optional:
 
 ## Usage
 
-1. In the Django Admin, go to **Pipeline → Flows** and create a flow.
+1. In the Django Admin (or via the in-app **Manage Flows** button for users with the `manage_flows` permission), create a flow.
 2. Set the **Status** to `Draft` while building.
 3. Add steps with the inline step editor.
-4. Configure **Audience & Visibility** (the flow won't appear until at least one audience dimension is set).
-5. Change Status to `Published`.
-6. Users matching the audience will see the flow on their Pipeline page.
+4. For `filter_check` steps, add **Smart Filter checks** — if your filters were registered before pipeline was installed, run the sync command first:
+
+   ```bash
+   docker compose exec allianceauth_gunicorn auth pipeline_sync_filters
+   ```
+
+5. Configure **Audience & Visibility** (the flow won't appear until at least one audience dimension is set).
+6. Change Status to `Published`.
+7. Users matching the audience will see the flow on their Pipeline page.
 
 ---
 

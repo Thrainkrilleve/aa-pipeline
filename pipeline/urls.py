@@ -11,21 +11,7 @@ app_name: str = "pipeline"
 urlpatterns = [
     # Index — list of all flows for the current user
     path("", views.index, name="index"),
-    # Flow detail — defaults to first incomplete step
-    path("<slug:slug>/", views.flow_detail, name="flow_detail"),
-    # Flow detail — navigate directly to a specific step
-    path(
-        "<slug:slug>/step/<int:step_pk>/",
-        views.flow_detail,
-        name="flow_detail_step",
-    ),
-    # Step action POST endpoint
-    path(
-        "<slug:slug>/step/<int:step_pk>/action/",
-        views.step_action,
-        name="step_action",
-    ),
-    # ── In-app Flow Manager ──────────────────────────────────────────────────
+    # ── In-app Flow Manager — must come before <slug:slug> ───────────────────
     path("manage/", views.manage_index, name="manage_index"),
     path("manage/new/", views.manage_flow_create, name="manage_flow_create"),
     path("manage/<slug:slug>/edit/", views.manage_flow_edit, name="manage_flow_edit"),
@@ -41,5 +27,17 @@ urlpatterns = [
         "manage/<slug:slug>/steps/<int:step_pk>/delete/",
         views.manage_step_delete,
         name="manage_step_delete",
+    ),
+    # ── Flow detail — slug-based routes (must come after manage/) ────────────
+    path("<slug:slug>/", views.flow_detail, name="flow_detail"),
+    path(
+        "<slug:slug>/step/<int:step_pk>/",
+        views.flow_detail,
+        name="flow_detail_step",
+    ),
+    path(
+        "<slug:slug>/step/<int:step_pk>/action/",
+        views.step_action,
+        name="step_action",
     ),
 ]
