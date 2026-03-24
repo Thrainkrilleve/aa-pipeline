@@ -1,0 +1,127 @@
+# Publishes aa-pipeline to PyPI on every version tag push (v*.*.*).
+#
+# Uses a PyPI API token stored as a GitHub secret.
+#
+# One-time PyPI setup:
+#   1. Create a PyPI API token at https://pypi.org/manage/account/
+#   2. Add it as a repository secret named PYPI_API_TOKEN:
+#        Settings → Secrets and variables → Actions → New repository secret
+#   3. Create a "pypi" environment in GitHub:
+#        Settings → Environments → New environment → name it "pypi"
+#        (optionally restrict to tag pushes and require a reviewer)
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"   # matches v1.0.0, v0.1.14, etc.
+
+  # Allow a manual trigger from the Actions tab for testing
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ── 1. Build the wheel + sdist ──────────────────────────────────────────
+  build:
+    name: Build distribution packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Stamp version from git tag
+        # Keeps pyproject.toml in sync with the tag automatically.
+        # On workflow_dispatch (no tag) the version stays whatever is in the file.
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"   # strip leading 'v'
+          sed -i "s/^__version__ = .*/__version__ = \"${TAG}\"/" pipeline/__init__.py
+          echo "Building version ${TAG}"
+
+      # Verify every model change has a committed migration before we build.
+      # This prevents publishing a package that requires end-users to run
+      # makemigrations themselves.
+      - name: Check for missing migrations
+        run: |
+          pip install "django>=4.2,<5" "allianceauth>=4.3.1,<5"
+          python - <<'EOF'
+          import django
+          from django.conf import settings
+          settings.configure(
+              INSTALLED_APPS=[
+                  "django.contrib.contenttypes",
+                  "django.contrib.auth",
+                  "allianceauth",
+                  "allianceauth.authentication",
+                  "allianceauth.eveonline",
+                  "pipeline",
+              ],
+              DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+              DEFAULT_AUTO_FIELD="django.db.models.AutoField",
+          )
+          django.setup()
+
+          from django.db.migrations.autodetector import MigrationAutodetector
+          from django.db.migrations.loader import MigrationLoader
+          from django.db.migrations.state import ProjectState
+          from django.apps import apps
+          import sys
+
+          loader = MigrationLoader(None, ignore_no_migrations=True)
+          autodetector = MigrationAutodetector(
+              loader.project_state(),
+              ProjectState.from_apps(apps),
+          )
+          changes = autodetector.changes(graph=loader.graph).get("pipeline", [])
+          if changes:
+              print("ERROR: Unmigrated model changes detected in pipeline!")
+              print("Run 'python manage.py makemigrations pipeline' and commit the result.")
+              sys.exit(1)
+          print("Migration check passed — all model changes are covered.")
+          EOF
+
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+
+      - name: Upload built packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+
+  # ── 2. Publish to PyPI using API token ──────────────────────────────────
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/aa-pipeline
+
+    steps:
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

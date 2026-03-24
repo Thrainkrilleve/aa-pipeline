@@ -36,10 +36,10 @@
 
 See the [Alliance Auth plugin installation docs](https://allianceauth.readthedocs.io/en/v4.13.1/) for general guidance.
 
-1. Add `aa-pipeline` to your `requirements.txt`:
+1. Install the package:
 
-   ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.10
+   ```bash
+   pip install aa-pipeline[markdown]
    ```
 
    The `[markdown]` extra installs `markdown` and `bleach` to enable Markdown rendering in step body text. Without it, body text is displayed as plain text.
@@ -66,10 +66,10 @@ See the [Alliance Auth plugin installation docs](https://allianceauth.readthedoc
 
 ## Updating
 
-1. Update the version pin in your `requirements.txt`:
+1. Upgrade the package:
 
-   ```
-   aa-pipeline[markdown] @ git+https://github.com/Thrainkrilleve/aa-pipeline.git@v0.1.10
+   ```bash
+   pip install --upgrade aa-pipeline[markdown]
    ```
 
 2. Rebuild and apply any new migrations:
