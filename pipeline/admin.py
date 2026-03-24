@@ -121,6 +121,7 @@ class OnboardingFlowAdmin(admin.ModelAdmin):
         "alliances",
         "factions",
         "characters",
+        "assign_if_missing_groups",
         "on_complete_add_groups",
     ]
     inlines = [FlowStepInline, FlowDiscordWebhookInline]
@@ -152,10 +153,13 @@ class OnboardingFlowAdmin(admin.ModelAdmin):
                     "alliances",
                     "factions",
                     "characters",
+                    "assign_if_missing_groups",
                 ],
                 "description": _(
                     "Choose at least one audience dimension before publishing.  "
-                    "A flow with no audience configured is invisible to all users."
+                    "A flow with no audience configured is invisible to all users.  "
+                    "Use ‘Assign if missing groups’ to target users who have not yet "
+                    "received a specific role."
                 ),
             },
         ),

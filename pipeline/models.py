@@ -259,6 +259,20 @@ class OnboardingFlow(models.Model):
         related_name="pipeline_flows",
     )
 
+    # ---- Missing-group auto-assignment targeting -----------------------------
+
+    assign_if_missing_groups = models.ManyToManyField(
+        Group,
+        blank=True,
+        verbose_name=_("assign if missing groups"),
+        related_name="pipeline_flows_missing_trigger",
+        help_text=_(
+            "Automatically assign this flow to any user who does NOT belong to any "
+            "of these groups.  When the user gains one of these groups their "
+            "unstarted assignment is automatically removed."
+        ),
+    )
+
     # ---- On-complete automation (Phase 4 stubs — stored now, used later) -----
 
     on_complete_add_groups = models.ManyToManyField(
@@ -303,6 +317,7 @@ class OnboardingFlow(models.Model):
             or self.alliances.exists()
             or self.factions.exists()
             or self.characters.exists()
+            or self.assign_if_missing_groups.exists()
         )
 
     def is_visible_to_user(self, user: User) -> bool:
@@ -338,6 +353,15 @@ class OnboardingFlow(models.Model):
         if self.characters.filter(character_id__in=char_ids).exists():
             return True
         if self.factions.filter(faction_id__in=faction_ids).exists():
+            return True
+
+        # Missing-group targeting: user is eligible as long as they don't have
+        # any of the configured groups.  Once they gain one, this returns False
+        # and the auto-assign task cleans up any unstarted assignment.
+        missing_grps = self.assign_if_missing_groups.all()
+        if missing_grps.exists() and not missing_grps.filter(
+            pk__in=user.groups.values_list("pk", flat=True)
+        ).exists():
             return True
 
         return False

@@ -50,7 +50,9 @@ class FlowManager(models.Manager):
     def get_visible_for_user(self, user: User):
         """
         All *published* flows that *user* is eligible to see, based on their
-        state, groups, corporation, alliance, faction, or character.
+        state, groups, corporation, alliance, faction, or character (positive
+        targeting), or because they are missing a specific group (negative
+        targeting via ``assign_if_missing_groups``).
         """
         profile = user.profile
 
@@ -64,7 +66,8 @@ class FlowManager(models.Manager):
             "character__faction_id", flat=True
         )
 
-        return (
+        # Positive targeting: user matches at least one configured criterion
+        positive_qs = (
             self.filter(status="published")
             .filter(
                 Q(states=profile.state)
@@ -76,3 +79,14 @@ class FlowManager(models.Manager):
             )
             .distinct()
         )
+
+        # Missing-group targeting: flow has assign_if_missing_groups configured
+        # and the user doesn't have any of those groups yet.
+        user_group_ids = user.groups.values_list("pk", flat=True)
+        missing_group_qs = (
+            self.filter(status="published", assign_if_missing_groups__isnull=False)
+            .exclude(assign_if_missing_groups__in=user_group_ids)
+            .distinct()
+        )
+
+        return (positive_qs | missing_group_qs).distinct()

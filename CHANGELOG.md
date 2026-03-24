@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.11] - 2026-03-24
+
+### Added
+- **"Assign if missing groups" targeting** — `OnboardingFlow` now has an
+  `assign_if_missing_groups` M2M field (visible in the admin under
+  *Audience & Visibility*). Any user who does not hold any of the configured
+  groups is automatically included in the flow's eligible audience. When the
+  user later gains one of those groups, any unstarted (`ASSIGNED`) assignment
+  is automatically cleaned up by the existing auto-assign task. Migration
+  `0005_assign_if_missing_groups` adds the join table.
+
+  Typical use: pair this field with *On-Completion Automation → add to groups*
+  to create a self-closing loop — users get onboarded into a role and the
+  flow disappears once they have it.
+
+---
+
 ## [0.1.10] - 2026-03-19
 
 ### Fixed
