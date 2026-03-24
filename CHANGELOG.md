@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.12] - 2026-03-24
+
+### Added
+- **Assignment Tracker in Flow Manager** — a new `manage/<slug>/assignments/`
+  page lets admins and staff see every user's progress through a specific flow
+  without leaving the in-app manager.
+  - Summary cards at the top show totals for Assigned / In Progress / Completed.
+  - Table rows show each user's username, main character, status badge,
+    a progress bar (required steps only), time since assignment, and a
+    per-step icon column (✔ complete, ○ incomplete, − optional incomplete).
+  - Toggle between "Active only" and "All (including completed)" views.
+  - Step legend above the table maps column numbers to step names.
+  - The **Active** count badge on the Flow Manager index is now a direct link
+    to this page.
+  - An **Assignments** button is shown in the flow edit header for quick access.
+
+---
+
 ## [0.1.11] - 2026-03-24
 
 ### Added

@@ -43,6 +43,11 @@ urlpatterns = [
         views.manage_step_reorder,
         name="manage_step_reorder",
     ),
+    path(
+        "manage/<slug:slug>/assignments/",
+        views.manage_flow_assignments,
+        name="manage_flow_assignments",
+    ),
     # ── Flow detail — slug-based routes (must come after manage/) ────────────
     path("<slug:slug>/", views.flow_detail, name="flow_detail"),
     path(

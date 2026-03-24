@@ -76,7 +76,9 @@
                             <span class="badge text-bg-secondary">{{ flow.step_count }}</span>
                         </td>
                         <td class="text-center">
-                            <span class="badge text-bg-info text-dark" title="{% trans 'Assigned or in progress' %}">{{ flow.active_count }}</span>
+                            <a href="{% url 'pipeline:manage_flow_assignments' flow.slug %}"
+                               class="badge text-bg-info text-dark text-decoration-none"
+                               title="{% trans 'View active assignments' %}">{{ flow.active_count }}</a>
                         </td>
                         <td class="text-center">
                             <span class="badge text-bg-success">{{ flow.completed_count }}</span>

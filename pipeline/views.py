@@ -658,6 +658,81 @@ def manage_flow_publish(request: WSGIRequest, slug: str) -> HttpResponse:
 
 
 @_require_manage
+def manage_flow_assignments(request: WSGIRequest, slug: str) -> HttpResponse:
+    """
+    Show all assignments for a flow so admins can see each user's progress.
+
+    By default only active (assigned / in_progress) assignments are shown.
+    Pass ?completed=1 to include completed assignments as well.
+    """
+    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    show_completed = request.GET.get("completed") == "1"
+
+    qs = (
+        FlowAssignment.objects
+        .filter(flow=flow)
+        .select_related("user__profile")
+        .prefetch_related(
+            "user__character_ownerships__character",
+            "step_completions__step",
+        )
+    )
+    if not show_completed:
+        qs = qs.exclude(status=AssignmentStatus.COMPLETED)
+
+    assignments = qs.order_by("status", "assigned_at")
+    steps = list(flow.steps.order_by("order"))
+
+    rows = []
+    for assignment in assignments:
+        step_states = [
+            {
+                "step": step,
+                "complete": step.is_complete(assignment.user, assignment),
+            }
+            for step in steps
+        ]
+        required_steps = [s for s in steps if not s.optional]
+        completed_required = sum(
+            1 for s in step_states
+            if s["complete"] and not s["step"].optional
+        )
+        pct = int(
+            (completed_required / len(required_steps) * 100)
+            if required_steps else 100
+        )
+        rows.append({
+            "assignment": assignment,
+            "step_states": step_states,
+            "pct": pct,
+            "completed_required": completed_required,
+            "total_required": len(required_steps),
+        })
+
+    totals = FlowAssignment.objects.filter(flow=flow).aggregate(
+        total_assigned=Count(
+            "pk", filter=Q(status=AssignmentStatus.ASSIGNED)
+        ),
+        total_in_progress=Count(
+            "pk", filter=Q(status=AssignmentStatus.IN_PROGRESS)
+        ),
+        total_completed=Count(
+            "pk", filter=Q(status=AssignmentStatus.COMPLETED)
+        ),
+    )
+
+    context = {
+        "flow": flow,
+        "steps": steps,
+        "rows": rows,
+        "show_completed": show_completed,
+        "page_title": _(f"Assignments: {flow.name}"),
+        **totals,
+    }
+    return render(request, "pipeline/manage/flow_assignments.html", context)
+
+
+@_require_manage
 def manage_step_reorder(request: WSGIRequest, slug: str, step_pk: int, direction: str) -> HttpResponse:
     """Move a step one position up or down in the flow's step order."""
     if request.method != "POST":
