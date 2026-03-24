@@ -230,16 +230,20 @@ def fire_discord_completion_notification(self, assignment_pk: int) -> None:
 def _notify_user_of_assignment(user, flow) -> None:
     """Send an in-app notification when a flow is auto-assigned to a user."""
     try:
+        from django.urls import reverse
+
         from allianceauth.notifications import notify
 
+        url = reverse("pipeline:flow_detail", args=[flow.slug])
         notify(
             user=user,
             title=f"New flow assigned: {flow.name}",
             message=(
                 f"You have been assigned the '{flow.name}' flow. "
-                f"Visit your Pipeline to get started."
+                f"Click to open it and get started."
             ),
             level="info",
+            url=url,
         )
     except Exception:
         logger.exception(

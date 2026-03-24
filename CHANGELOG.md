@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.13] - 2026-03-24
+
+### Fixed
+- **Assigned flow not visible to users** — three bugs combined to cause this:
+  - `get_assigned_for_user` used `exclude(assignments__status="completed")` which
+    is not scoped to the current user in a multi-valued FK join. If *any* user
+    completed a flow, it was excluded from every other user's assigned list.
+    Fixed by combining both conditions into a single `filter()` call.
+  - `recalculate_status()` was only called in `flow_detail` when *all* required
+    steps were already done. Filter-check steps that silently auto-pass their
+    criteria never triggered a status transition; the assignment stayed `Assigned`
+    indefinitely. Fixed by calling `recalculate_status()` on every page visit
+    (still guarded by `status != COMPLETED`).
+  - Auto-assignment notifications had no URL — users received "Visit your
+    Pipeline to get started" with no link and no way to find the flow if the
+    sidebar item wasn't visible. Fixed: notification now includes a direct link
+    to the assigned flow.
+
+---
+
 ## [0.1.12] - 2026-03-24
 
 ### Added

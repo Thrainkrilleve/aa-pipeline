@@ -290,7 +290,10 @@ def flow_detail(
         s["complete"] for s in steps if not s["step"].optional
     )
 
-    if all_required_done and assignment.status != AssignmentStatus.COMPLETED:
+    # Always recalculate on visit so filter_check steps that silently pass
+    # their criteria (without a POST action) still advance the assignment
+    # status to in_progress or completed as appropriate.
+    if assignment.status != AssignmentStatus.COMPLETED:
         assignment.recalculate_status()
 
     # Completion body text -------------------------------------------------

@@ -26,10 +26,16 @@ class FlowManager(models.Manager):
         By default only returns incomplete (assigned / in_progress) flows.
         Pass ``include_completed=True`` to include completed ones as well.
         """
-        qs = self.filter(assignments__user=user)
-        if not include_completed:
-            qs = qs.exclude(assignments__status="completed")
-        return qs.distinct()
+        if include_completed:
+            return self.filter(assignments__user=user).distinct()
+        # Combine both conditions in a single filter() so Django generates one
+        # JOIN scoped to the user's own assignment — avoids the multi-valued FK
+        # pitfall where a separate exclude() would match *any* user's completed
+        # assignment and incorrectly hide the flow for everyone else.
+        return self.filter(
+            assignments__user=user,
+            assignments__status__in=["assigned", "in_progress"],
+        ).distinct()
 
     def get_auto_assignable_for_user(self, user: User):
         """
