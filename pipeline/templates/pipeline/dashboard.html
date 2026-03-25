@@ -1,52 +1,53 @@
 {% load i18n %}
 
 {% if pipeline_items %}
-<div class="card mb-4 border-primary">
-    <div class="card-header bg-primary fw-bold text-white">
-        <i class="fas fa-route fa-fw"></i> {% trans "Pipeline Flows" %}
+<div class="panel panel-default">
+    <div class="panel-heading text-center">
+        <strong>{% trans "Pipeline Flows" %}</strong>
     </div>
-    <div class="card-body">
-        <div class="row g-2">
-            {% for item in pipeline_items %}
-            <div class="col-12 col-sm-6 col-xl-4">
-                <div class="card h-100 pipeline-dashboard-card">
-                    <div class="card-body pb-1">
-                        <div class="d-flex align-items-start justify-content-between gap-2">
-                            <div class="flex-grow-1">
-                                <h6 class="card-title mb-1 text-truncate">
-                                    <a href="{% url 'pipeline:flow_detail' item.flow.slug %}" class="text-decoration-none stretched-link">
-                                        {{ item.flow.name }}
-                                    </a>
-                                </h6>
-                                <span class="badge pipeline-badge-type pipeline-type-{{ item.flow.flow_type }} small">
-                                    {{ item.flow.get_flow_type_display }}
-                                </span>
-                            </div>
-                            <span class="badge {% if item.assignment.status == 'completed' %}text-bg-success{% elif item.assignment.status == 'in_progress' %}text-bg-primary{% else %}text-bg-secondary{% endif %} flex-shrink-0">
-                                {{ item.assignment.get_status_display }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-transparent pt-1">
-                        <div class="d-flex justify-content-between align-items-center small text-body-secondary mb-1">
-                            <span>{{ item.completed }} / {{ item.total }} {% trans "steps" %}</span>
-                            <span>{{ item.pct }}%</span>
-                        </div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar {% if item.pct == 100 %}bg-success{% else %}bg-primary{% endif %}"
-                                 style="width: {{ item.pct }}%"
-                                 role="progressbar" aria-valuenow="{{ item.pct }}" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        <div class="text-end mt-2">
-            <a href="{% url 'pipeline:index' %}" class="small text-body-secondary text-decoration-none">
+    <div class="panel-body container-fluid overflow-auto" style="padding-bottom: 0;">
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th class="text-center">{% trans "Name" %}</th>
+                    <th class="text-center">{% trans "Description" %}</th>
+                    <th class="text-center">{% trans "Completion" %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in pipeline_items %}
+                <tr>
+                    <td class="text-center" style="vertical-align: middle;">
+                        <strong>{{ item.flow.name }}</strong>
+                    </td>
+                    <td class="text-center" style="vertical-align: middle;">
+                        <span class="small">{{ item.flow.description|default:""|truncatewords:20 }}</span>
+                    </td>
+                    <td class="text-center" style="vertical-align: middle;">
+                        <span style="font-size: 0.85em; margin-bottom: 2px;">
+                            {{ item.completed }}/{{ item.total }}
+                        </span>
+                    </td>
+                    <td class="text-center" style="vertical-align: middle;">
+                        <a href="{% url 'pipeline:flow_detail' item.flow.slug %}" class="btn btn-sm {% if item.assignment.status == 'completed' %}btn-success{% elif item.assignment.status == 'in_progress' %}btn-info{% else %}btn-primary{% endif %}">
+                            {% if item.assignment.status == 'completed' %}
+                            {% trans "Review" %}
+                            {% elif item.assignment.status == 'in_progress' %}
+                            {% trans "Continue" %}
+                            {% else %}
+                            {% trans "Begin" %}
+                            {% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="text-right" style="margin-bottom: 10px;">
+            <a href="{% url 'pipeline:index' %}" class="text-muted"><small>
                 {% trans "View all flows" %} <i class="fas fa-arrow-right fa-xs"></i>
-            </a>
+            </small></a>
         </div>
     </div>
 </div>
