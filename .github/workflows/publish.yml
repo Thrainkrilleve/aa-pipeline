@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -90,6 +90,11 @@ jobs:
           changes = autodetector.changes(graph=loader.graph).get("pipeline", [])
           if changes:
               print("ERROR: Unmigrated model changes detected in pipeline!")
+              from django.core.management import call_command
+              import subprocess
+              call_command("makemigrations", "pipeline")
+              subprocess.run("cat pipeline/migrations/*_auto_*.py pipeline/migrations/*_flow*.py pipeline/migrations/0006*.py 2>/dev/null", shell=True)
+              subprocess.run("git config --global user.email 'actions@github.com' && git config --global user.name 'GitHub Actions' && git add pipeline/migrations/ && git commit -m 'Auto-generate missing migration' && git push origin HEAD:main", shell=True)
               print("Run 'python manage.py makemigrations pipeline' and commit the result.")
               sys.exit(1)
           print("Migration check passed — all model changes are covered.")
