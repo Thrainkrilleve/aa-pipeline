@@ -26,6 +26,7 @@ class FlowManager(models.Manager):
         By default only returns incomplete (assigned / in_progress) flows.
         Pass ``include_completed=True`` to include completed ones as well.
         """
+        from .models import AssignmentStatus
         if include_completed:
             return self.filter(assignments__user=user).distinct()
         # Combine both conditions in a single filter() so Django generates one
@@ -34,7 +35,7 @@ class FlowManager(models.Manager):
         # assignment and incorrectly hide the flow for everyone else.
         return self.filter(
             assignments__user=user,
-            assignments__status__in=["assigned", "in_progress"],
+            assignments__status__in=[AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS],
         ).distinct()
 
     def get_auto_assignable_for_user(self, user: User):
@@ -72,11 +73,13 @@ class FlowManager(models.Manager):
             "character__faction_id", flat=True
         )
 
+        state_q = Q(states=profile.state) if profile.state else Q(pk__in=[])
+        
         # Positive targeting: user matches at least one configured criterion
         positive_qs = (
             self.filter(status="published")
             .filter(
-                Q(states=profile.state)
+                state_q
                 | Q(groups__in=user.groups.all())
                 | Q(corporations__corporation_id__in=corp_ids)
                 | Q(alliances__alliance_id__in=alliance_ids)

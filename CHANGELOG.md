@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.14] - 2026-03-24
+
+### Changed
+- Added GitHub Actions CI/CD workflow to run migrations check and automatically publish passing releases to PyPI.
+
+### Fixed
+- Fixed an issue where `Q(states=None)` incorrectly matched flows with no state targeting when rendering workflows for users with no state.
+- Improved `get_assigned_for_user` to use explicit Enum members for `IN_PROGRESS` and `ASSIGNED` status lookups.
+
+---
+
 ## [0.1.13] - 2026-03-24
 
 ### Fixed
