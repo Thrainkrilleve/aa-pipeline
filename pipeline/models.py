@@ -644,7 +644,7 @@ class FlowAssignment(models.Model):
         """
         if self.flow.is_complete(self.user, self):
             self._mark_complete()
-        elif self.step_completions.exists():
+        elif self.step_completions.exists() or any(step.is_complete(self.user, self) for step in self.flow.steps.all()):
             if self.status == AssignmentStatus.ASSIGNED:
                 self.status = AssignmentStatus.IN_PROGRESS
                 self.save(update_fields=["status"])

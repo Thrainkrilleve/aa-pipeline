@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.15] - 2026-03-24
+
+### Fixed
+- Fixed an issue where the Alliance Auth dashboard widget injected the full HTML base layout (menus and styles) inline into the page body.
+- Fixed a visual bug in the dashboard widget where incomplete assignments displayed as gray "Assigned" instead of "In Progress" when Smart Filter checks silently passed.
+- Fixed an issue where Assignments wouldn't flip to "In Progress" if the first passing step was dynamically evaluated (like a smart filter check) rather than explicitly submitted via a view.
+
+---
+
 ## [0.1.14] - 2026-03-24
 
 ### Changed
