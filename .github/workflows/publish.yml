@@ -63,6 +63,7 @@ jobs:
               INSTALLED_APPS=[
                   "django.contrib.contenttypes",
                   "django.contrib.auth",
+                  "esi",
                   "allianceauth",
                   "allianceauth.authentication",
                   "allianceauth.eveonline",
