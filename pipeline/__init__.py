@@ -1,5 +1,5 @@
 """Initialize the app"""
 
-__version__ = "0.1.28"
+__version__ = "0.1.29"
 __title__ = "Pipeline"
 

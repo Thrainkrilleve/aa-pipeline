@@ -15,7 +15,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
 from django.core.handlers.wsgi import WSGIRequest
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Prefetch
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -134,6 +134,8 @@ def _get_or_create_assignment(flow: OnboardingFlow, user) -> FlowAssignment:
         user=user,
         defaults={"status": AssignmentStatus.ASSIGNED},
     )
+    from django.db.models.query import prefetch_related_objects
+    prefetch_related_objects([assignment], "step_completions")
     return assignment
 
 
@@ -154,21 +156,33 @@ def pipeline_dashboard(request) -> str:
     if not request.user.has_perm("pipeline.basic_access"):
         return ""
 
-    assigned = OnboardingFlow.objects.get_assigned_for_user(request.user).order_by(
-        "name"
+    assigned = (
+        OnboardingFlow.objects.get_assigned_for_user(request.user)
+        .prefetch_related(
+            Prefetch(
+                "assignments",
+                queryset=FlowAssignment.objects.filter(user=request.user).prefetch_related("step_completions"),
+                to_attr="user_assignment",
+            ),
+            Prefetch(
+                "steps",
+                queryset=FlowStep.objects.prefetch_related("checks__filter__content_type")
+            )
+        )
+        .order_by("name")
     )
 
     items = []
     for flow in assigned:
-        assignment = FlowAssignment.objects.filter(
-            flow=flow, user=request.user
-        ).first()
-        if assignment is None:
+        assignments = getattr(flow, "user_assignment", [])
+        if not assignments:
             continue
-        total = flow.steps.count()
+        assignment = assignments[0]
+        steps = list(flow.steps.all())
+        total = len(steps)
         completed = sum(
             1
-            for s in flow.steps.all()
+            for s in steps
             if s.is_complete(request.user, assignment)
         )
         items.append(
@@ -202,22 +216,44 @@ def index(request: WSGIRequest) -> HttpResponse:
     """List all flows visible (or assigned) to the current user."""
     user = request.user
 
-    assigned_flows = OnboardingFlow.objects.get_assigned_for_user(user).order_by("name")
+    assigned_flows = (
+        OnboardingFlow.objects.get_assigned_for_user(user)
+        .prefetch_related(
+            Prefetch(
+                "assignments",
+                queryset=FlowAssignment.objects.filter(user=user).prefetch_related("step_completions"),
+                to_attr="user_assignment",
+            ),
+            Prefetch(
+                "steps",
+                queryset=FlowStep.objects.prefetch_related("checks__filter__content_type")
+            )
+        )
+        .order_by("name")
+    )
     visible_flows = (
         OnboardingFlow.objects.get_visible_for_user(user)
         .exclude(assignments__user=user)
+        .prefetch_related(
+            Prefetch(
+                "steps",
+                queryset=FlowStep.objects.prefetch_related("checks__filter__content_type")
+            )
+        )
         .order_by("name")
     )
 
     def _enrich(qs):
         result = []
         for flow in qs:
-            assignment = FlowAssignment.objects.filter(flow=flow, user=user).first()
-            total = flow.steps.count()
+            assignments = getattr(flow, "user_assignment", [])
+            assignment = assignments[0] if assignments else None
+            steps = list(flow.steps.all())
+            total = len(steps)
             if assignment:
                 completed = sum(
                     1
-                    for s in flow.steps.all()
+                    for s in steps
                     if s.is_complete(user, assignment)
                 )
             else:
@@ -258,7 +294,15 @@ def flow_detail(
     """
     user = request.user
 
-    flow = get_object_or_404(OnboardingFlow, slug=slug)
+    flow = get_object_or_404(
+        OnboardingFlow.objects.prefetch_related(
+            Prefetch(
+                "steps",
+                queryset=FlowStep.objects.prefetch_related("checks__filter__content_type")
+            )
+        ),
+        slug=slug
+    )
 
     # Access control -------------------------------------------------------
     if flow.status == FlowStatus.DRAFT:

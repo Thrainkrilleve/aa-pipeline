@@ -504,7 +504,7 @@ class FlowStep(models.Model):
         etype = self.effective_type
 
         if etype == StepType.FILTER_CHECK:
-            checks = list(self.checks.select_related("filter__content_type").all())
+            checks = list(self.checks.all())
             if not checks:
                 return True
             return all(c.filter.evaluate(user) for c in checks)
@@ -512,7 +512,7 @@ class FlowStep(models.Model):
         if etype in (StepType.ACKNOWLEDGEMENT, "auto_pass"):
             if etype == "auto_pass":
                 return True
-            return StepCompletion.objects.filter(assignment=assignment, step=self).exists()
+            return any(sc.step_id == self.pk for sc in assignment.step_completions.all())
 
         if etype == StepType.SERVICE_CHECK:
             from .service_registry import check_service_for_user
@@ -524,7 +524,7 @@ class FlowStep(models.Model):
     def get_completion_pct(self, user: User, assignment: "FlowAssignment") -> float:
         etype = self.effective_type
         if etype == StepType.FILTER_CHECK:
-            checks = list(self.checks.select_related("filter__content_type").all())
+            checks = list(self.checks.all())
             if not checks:
                 return 1.0
             passed = sum(1 for c in checks if c.filter.evaluate(user))
@@ -541,9 +541,7 @@ class FlowStep(models.Model):
                 "label": sc.label or str(sc.filter),
                 "passed": sc.filter.evaluate(user),
             }
-            for sc in self.checks.select_related(
-                "filter__content_type"
-            ).order_by("order")
+            for sc in self.checks.all()
         ]
 
 
