@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.30] - 2026-07-16
+
+### Changed
+- Optimized N+1 database queries in flow details and assignment views.
+- Optimized markdown rendering to dynamically load module dependencies, reducing view overhead.
+- Optimized Celery auto-assign cleanup to use efficient visibility queries instead of loops.
+
+### Fixed
+- Enhanced Discord webhook error logging to properly surface underlying HTTP API errors.
+
+---
+
 ## [0.1.15] - 2026-03-24
 
 ### Fixed
