@@ -53,6 +53,30 @@ _ALLOWED_ATTRS = {
 }
 
 
+_markdown_lib = None
+_bleach_lib = None
+_markdown_initialized = False
+
+
+def _init_markdown():
+    global _markdown_lib, _bleach_lib, _markdown_initialized
+    if _markdown_initialized:
+        return
+    _markdown_initialized = True
+    try:
+        import markdown
+        _markdown_lib = markdown
+    except ImportError:
+        pass
+    
+    try:
+        import bleach
+        import bleach.linkifier
+        _bleach_lib = bleach
+    except ImportError:
+        pass
+
+
 def render_markdown(text: str) -> str:
     """
     Render *text* as Markdown HTML if the 'markdown' package is available.
@@ -62,26 +86,20 @@ def render_markdown(text: str) -> str:
     """
     if not text:
         return ""
-    try:
-        import markdown as md
-
-        html = md.markdown(
+        
+    _init_markdown()
+    
+    if _markdown_lib:
+        html = _markdown_lib.markdown(
             text,
             extensions=["fenced_code", "tables", "nl2br", "toc"],
             output_format="html",
         )
-        try:
-            import bleach
-            import bleach.linkifier
-
-            return bleach.clean(html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
-        except ImportError:
-            # bleach not available — markdown without sanitisation
-            return html
-    except ImportError:
-        # markdown not available — plain text with Django linebreaks
+        if _bleach_lib:
+            return _bleach_lib.clean(html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
+        return html
+    else:
         from django.utils.html import escape, linebreaks as lb
-
         return lb(escape(text))
 
 
@@ -100,7 +118,10 @@ def _build_step_list(user, flow: OnboardingFlow, assignment: FlowAssignment) -> 
         url             str  — URL to navigate directly to this step
     """
     steps = []
-    for step in flow.steps.order_by("order"):
+    for step in flow.steps.prefetch_related(
+        "checks__filter__content_type", 
+        "checks__filter__filter_object"
+    ).order_by("order"):
         complete = step.is_complete(user, assignment)
         etype = step.effective_type
         steps.append(
@@ -728,7 +749,10 @@ def manage_flow_assignments(request: WSGIRequest, slug: str) -> HttpResponse:
         qs = qs.exclude(status=AssignmentStatus.COMPLETED)
 
     assignments = qs.order_by("status", "assigned_at")
-    steps = list(flow.steps.order_by("order"))
+    steps = list(flow.steps.prefetch_related(
+        "checks__filter__content_type", 
+        "checks__filter__filter_object"
+    ).order_by("order"))
 
     rows = []
     for assignment in assignments:

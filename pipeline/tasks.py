@@ -38,11 +38,14 @@ def process_autoassign_for_user(self, user_pk: int) -> None:
         user=user, status=AssignmentStatus.ASSIGNED
     ).select_related("flow")
 
+    visible_flow_ids = set(OnboardingFlow.objects.get_visible_for_user(user).values_list("pk", flat=True))
+
     for assignment in stale:
         flow = assignment.flow
-        if not flow.is_visible_to_user(user) and not flow.has_visibility_configured:
+        if not flow.has_visibility_configured:
             continue
-        if not flow.is_visible_to_user(user):
+        
+        if flow.pk not in visible_flow_ids:
             assignment.delete()
             logger.info(
                 "Pipeline: removed stale assignment for user %s, flow %s",
@@ -213,6 +216,15 @@ def fire_discord_completion_notification(self, assignment_pk: int) -> None:
                     resp.status,
                     assignment_pk,
                 )
+        except urllib.error.HTTPError as exc:
+            logger.warning(
+                "Pipeline Discord webhook: HTTP %s from hook pk=%s "
+                "for assignment pk=%s — retrying",
+                exc.code,
+                hook.pk,
+                assignment_pk,
+            )
+            errors.append(exc)
         except Exception as exc:
             logger.warning(
                 "Pipeline Discord webhook: failed to notify hook pk=%s "
