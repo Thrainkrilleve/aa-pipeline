@@ -27,8 +27,8 @@
 
 ## Requirements
 
-- Python >= 3.10
-- Alliance Auth >= 4.3.1, < 5
+- Python >= 3.12
+- Alliance Auth >= 4.3.1, < 6
 
 ---
 

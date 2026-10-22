@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["allianceauth", "onboarding", "pipeline", "workflows", "certification", "training"]
 license = { file = "LICENSE" }
 authors = [{ name = "aa-pipeline contributors" }]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
@@ -19,8 +19,6 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
