@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.1.32] - 2026-10-23
 
 ### Changed
 - Dropped support for Python 3.10 and 3.11; `requires-python` is now `>=3.12`. This follows Alliance Auth moving its Python 3.10/3.11 deprecation up to 2026-11-13 (mid AA v5). Docker installs already run Python 3.12, so no action is needed there.
