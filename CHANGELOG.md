@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.32] - 2026-10-23
 
 ### Changed
-- Dropped support for Python 3.10 and 3.11; `requires-python` is now `>=3.12`. This follows Alliance Auth moving its Python 3.10/3.11 deprecation up to 2026-11-13 (mid AA v5). Docker installs already run Python 3.12, so no action is needed there.
-- README requirements now list Alliance Auth `< 6`, matching the dependency pin in `pyproject.toml`.
 - Redesigned the member and manager pages:
   - The Pipeline page groups flows into Assigned to you, Available and Completed, with cleaner cards.
   - A flow's page has a numbered step list, "Step 2 of 5" context, previous/next buttons and an in-page breadcrumb.
@@ -29,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Flash messages appeared twice on the flow manager, flow editor and step editor.
 - The flow editor's form was mis-nested in the page and the page didn't load `pipeline.js`.
 - The flow delete page left the number of steps that would be deleted blank.
+
+---
+
+## [0.1.31] - 2026-10-22
+
+### Changed
+- Dropped support for Python 3.10 and 3.11; `requires-python` is now `>=3.12`. This follows Alliance Auth moving its Python 3.10/3.11 deprecation up to 2026-11-13 (mid AA v5). Docker installs already run Python 3.12, so no action is needed there.
+- README requirements now list Alliance Auth `< 6`, matching the dependency pin in `pyproject.toml`.
 
 ---
 
