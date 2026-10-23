@@ -52,6 +52,12 @@ class FlowForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The model field is required, so without this a blank slug fails
+        # validation before clean_slug() can generate one from the name.
+        self.fields["slug"].required = False
+
     def clean_slug(self):
         slug = self.cleaned_data.get("slug", "").strip()
         if not slug:
