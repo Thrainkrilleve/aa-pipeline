@@ -1,8 +1,18 @@
 /* ============================================================================
    Pipeline App — pipeline.css
    Alliance Auth Bootstrap 5 compatible stylesheet.
-   Uses CSS custom properties where possible so AA themes work automatically.
+   Uses Bootstrap's CSS custom properties so every AA theme, light or dark,
+   works without overrides.
    ============================================================================ */
+
+.pipeline-app .min-w-0 {
+    min-width: 0;
+}
+
+/* Keep [hidden] working on elements that also use Bootstrap display utilities */
+.pipeline-app [hidden] {
+    display: none !important;
+}
 
 /* ---------------------------------------------------------------------------
    Progress Strip
@@ -15,8 +25,6 @@
     background-color: var(--bs-body-bg);
     /* offset the my-3 top margin so the strip truly sticks at the top of .nav-padding */
     margin-top: -1rem;
-    /* subtle bottom shadow to lift it off the content */
-    box-shadow: 0 1px 0 0 var(--bs-border-color);
 }
 
 .pipeline-progress-strip .progress {
@@ -24,177 +32,84 @@
     height: 3px;
 }
 
-.pipeline-progress-bar-animated {
+.pipeline-app .progress-bar {
     transition: width 0.5s ease;
 }
 
+.pipeline-app .progress.pipeline-thin {
+    height: 0.375rem;
+}
+
 /* ---------------------------------------------------------------------------
-   Step Sidebar
+   Quiet button: neutral actions drawn from the theme's text and border
+   colours, so they stay readable in every AA theme (outline-secondary and
+   outline-primary are very faint in some Bootswatch themes).
    --------------------------------------------------------------------------- */
-.pipeline-sidebar-card {
-    /* Allow sticky to work; avoid exceeding viewport */
-    max-height: calc(100vh - 6rem);
+.pipeline-app .btn-quiet {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: var(--bs-border-color);
+    --bs-btn-hover-color: var(--bs-emphasis-color);
+    --bs-btn-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.06);
+    --bs-btn-hover-border-color: var(--bs-secondary-color);
+    --bs-btn-active-color: var(--bs-emphasis-color);
+    --bs-btn-active-bg: rgba(var(--bs-emphasis-color-rgb), 0.1);
+    --bs-btn-active-border-color: var(--bs-secondary-color);
+    --bs-btn-disabled-color: var(--bs-secondary-color);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: var(--bs-border-color);
+}
+
+/* ---------------------------------------------------------------------------
+   Page header
+   --------------------------------------------------------------------------- */
+.pipeline-page-icon {
+    align-items: center;
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    border-radius: var(--bs-border-radius-lg);
+    color: var(--bs-emphasis-color);
+    display: inline-flex;
+    flex: none;
+    font-size: 1.25rem;
+    height: 2.75rem;
+    justify-content: center;
+    width: 2.75rem;
+}
+
+.pipeline-section-title {
+    align-items: center;
     display: flex;
-    flex-direction: column;
-}
-
-.pipeline-sidebar-card .list-group {
-    overflow-y: auto;
-    flex: 1 1 auto;
-}
-
-.pipeline-step-item {
-    border-left: 3px solid transparent !important;
-    transition: border-left-color 0.15s ease;
-    padding: 0.5rem 0.75rem;
-}
-
-.pipeline-step-item:hover {
-    border-left-color: var(--bs-border-color) !important;
-}
-
-.pipeline-step-item.active {
-    border-left-color: var(--bs-primary) !important;
-    background-color: var(--bs-primary-bg-subtle) !important;
-    color: var(--bs-primary-text-emphasis) !important;
-}
-
-.pipeline-step-item.pipeline-step-complete {
-    border-left-color: var(--bs-success) !important;
-}
-
-.pipeline-step-icon {
-    width: 1.1rem;
-    text-align: center;
-}
-
-.pipeline-step-name {
-    max-width: 14rem;
-}
-
-.pipeline-optional-badge {
-    font-size: 0.65rem;
-}
-
-/* Collapse icon animation */
-[data-bs-toggle="collapse"][aria-expanded="true"] .pipeline-collapse-icon {
-    transform: rotate(180deg);
-}
-.pipeline-collapse-icon {
-    transition: transform 0.2s ease;
-}
-
-/* ---------------------------------------------------------------------------
-   Step Content Body (Rendered Markdown)
-   --------------------------------------------------------------------------- */
-.pipeline-step-body {
-    max-width: 72ch;
-    line-height: 1.7;
-}
-
-.pipeline-step-body > *:first-child {
-    margin-top: 0;
-}
-
-.pipeline-step-body h1,
-.pipeline-step-body h2,
-.pipeline-step-body h3,
-.pipeline-step-body h4,
-.pipeline-step-body h5 {
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-}
-
-.pipeline-step-body pre {
-    background-color: var(--bs-secondary-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    padding: 0.875rem 1rem;
-    overflow-x: auto;
-    font-size: 0.875em;
-}
-
-.pipeline-step-body code {
-    background-color: var(--bs-secondary-bg);
-    border: 1px solid var(--bs-border-color);
-    padding: 0.15em 0.35em;
-    border-radius: var(--bs-border-radius-sm);
-    font-size: 0.875em;
-}
-
-.pipeline-step-body pre code {
-    background: transparent;
-    border: none;
-    padding: 0;
-    font-size: inherit;
-}
-
-.pipeline-step-body blockquote {
-    border-left: 4px solid var(--bs-border-color);
-    padding-left: 1rem;
-    color: var(--bs-secondary-color);
-    margin-left: 0;
-}
-
-.pipeline-step-body table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
-}
-
-.pipeline-step-body table th,
-.pipeline-step-body table td {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--bs-border-color);
-}
-
-.pipeline-step-body table th {
-    background-color: var(--bs-secondary-bg);
-    font-weight: 600;
-}
-
-/* ---------------------------------------------------------------------------
-   Filter Check List
-   --------------------------------------------------------------------------- */
-.pipeline-check-row {
-    transition: background-color 0.15s ease;
-}
-
-.pipeline-check-passed {
-    background-color: var(--bs-success-bg-subtle) !important;
-}
-
-.pipeline-check-failed {
-    /* no special bg — keep default */
+    gap: 0.5rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
 }
 
 /* ---------------------------------------------------------------------------
    Flow Type Badges
    --------------------------------------------------------------------------- */
 .pipeline-badge-type {
+    border-radius: var(--bs-border-radius-sm);
     font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.03em;
-    text-transform: uppercase;
     padding: 0.25em 0.5em;
-    border-radius: var(--bs-border-radius-sm);
+    text-transform: uppercase;
 }
 
-.pipeline-type-onboarding    { background-color: #0d6efd20; color: #0d6efd; }
-.pipeline-type-training      { background-color: #6610f220; color: #6610f2; }
-.pipeline-type-certification { background-color: #fd7e1420; color: #fd7e14; }
-.pipeline-type-vetting       { background-color: #dc354520; color: #dc3545; }
-.pipeline-type-industry      { background-color: #19875420; color: #198754; }
-.pipeline-type-other         { background-color: #6c757d20; color: #6c757d; }
+.pipeline-type-onboarding    { --pipeline-hue: #0d6efd; }
+.pipeline-type-training      { --pipeline-hue: #6f42c1; }
+.pipeline-type-certification { --pipeline-hue: #fd7e14; }
+.pipeline-type-vetting       { --pipeline-hue: #dc3545; }
+.pipeline-type-industry      { --pipeline-hue: #198754; }
+.pipeline-type-other         { --pipeline-hue: #6c757d; }
 
-/* Dark-mode overrides: use slightly lighter shades */
-[data-bs-theme="dark"] .pipeline-type-onboarding    { background-color: #0d6efd30; color: #8ab4f8; }
-[data-bs-theme="dark"] .pipeline-type-training      { background-color: #7c3aed30; color: #bb86fc; }
-[data-bs-theme="dark"] .pipeline-type-certification { background-color: #fd7e1430; color: #ffab5e; }
-[data-bs-theme="dark"] .pipeline-type-vetting       { background-color: #dc354530; color: #f48c97; }
-[data-bs-theme="dark"] .pipeline-type-industry      { background-color: #19875430; color: #56c586; }
-[data-bs-theme="dark"] .pipeline-type-other         { background-color: #6c757d30; color: #adb5bd; }
+.pipeline-badge-type {
+    background-color: color-mix(in srgb, var(--pipeline-hue, #6c757d) 18%, transparent);
+    color: color-mix(in srgb, var(--pipeline-hue, #6c757d) 65%, var(--bs-body-color));
+}
 
 /* ---------------------------------------------------------------------------
    Index page — Flow cards
@@ -204,27 +119,272 @@
 }
 
 .pipeline-flow-card:hover {
+    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.08);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pipeline-flow-card .card-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* The whole card is clickable through the title link */
+.pipeline-flow-card .card-title a::after {
+    content: "";
+    inset: 0;
+    position: absolute;
+}
+
+.pipeline-flow-card .card-footer {
+    position: relative;
+    z-index: 1;
+}
+
+.pipeline-clamp-2 {
+    -webkit-box-orient: vertical;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
 }
 
 .border-dashed {
     border-style: dashed !important;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .pipeline-flow-card,
+    .pipeline-flow-card:hover {
+        transform: none;
+        transition: none;
+    }
+}
+
 /* ---------------------------------------------------------------------------
-   Dashboard widget cards
+   Step stepper (flow detail sidebar)
    --------------------------------------------------------------------------- */
-.pipeline-dashboard-card {
-    transition: transform 0.1s ease;
+.pipeline-stepper {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem;
 }
 
-.pipeline-dashboard-card:hover {
-    transform: translateY(-1px);
+.pipeline-stepper-item {
+    position: relative;
+}
+
+/* Connector line between markers */
+.pipeline-stepper-item:not(:last-child)::after {
+    background-color: var(--bs-border-color);
+    bottom: -0.55rem;
+    content: "";
+    left: calc(0.75rem + 0.875rem - 1px);
+    position: absolute;
+    top: 2.3rem;
+    width: 2px;
+}
+
+.pipeline-stepper-item.is-complete:not(:last-child)::after {
+    background-color: var(--bs-success);
+}
+
+.pipeline-stepper-link {
+    align-items: flex-start;
+    border-radius: var(--bs-border-radius);
+    color: var(--bs-body-color);
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    text-decoration: none;
+}
+
+.pipeline-stepper-link:hover {
+    background-color: rgba(var(--bs-emphasis-color-rgb), 0.05);
+    color: var(--bs-body-color);
+}
+
+.pipeline-stepper-item.is-current .pipeline-stepper-link {
+    background-color: rgba(var(--bs-primary-rgb), 0.14);
+}
+
+.pipeline-stepper-marker {
+    align-items: center;
+    background-color: var(--bs-body-bg);
+    border: 2px solid var(--bs-border-color);
+    border-radius: 50%;
+    color: var(--bs-secondary-color);
+    display: inline-flex;
+    flex: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    height: 1.75rem;
+    justify-content: center;
+    position: relative;
+    width: 1.75rem;
+    z-index: 1;
+}
+
+.pipeline-stepper-item.is-complete .pipeline-stepper-marker {
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
+    color: #fff;
+}
+
+.pipeline-stepper-item.is-current:not(.is-complete) .pipeline-stepper-marker {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25);
+    color: var(--bs-emphasis-color);
+}
+
+.pipeline-stepper-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.75rem;
+}
+
+.pipeline-stepper-item.is-current .pipeline-stepper-name {
+    color: var(--bs-emphasis-color);
+}
+
+.pipeline-stepper-desc {
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    line-height: 1.3;
+    margin-top: -0.2rem;
+}
+
+.pipeline-stepper-card {
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+}
+
+.pipeline-collapse-icon {
+    transition: transform 0.2s ease;
+}
+
+[data-bs-toggle="collapse"][aria-expanded="true"] .pipeline-collapse-icon {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 991.98px) {
+    .pipeline-stepper-card {
+        max-height: none;
+        position: static !important;
+    }
 }
 
 /* ---------------------------------------------------------------------------
-   Completion card animation
+   Step content
+   --------------------------------------------------------------------------- */
+.pipeline-step-eyebrow {
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.pipeline-tint-primary { background-color: rgba(var(--bs-primary-rgb), 0.15); color: var(--bs-emphasis-color); }
+.pipeline-tint-info    { background-color: rgba(var(--bs-info-rgb), 0.15);    color: var(--bs-info); }
+.pipeline-tint-warning { background-color: rgba(var(--bs-warning-rgb), 0.18); color: var(--bs-warning); }
+.pipeline-tint-success { background-color: rgba(var(--bs-success-rgb), 0.15); color: var(--bs-success); }
+.pipeline-tint-danger  { background-color: rgba(var(--bs-danger-rgb), 0.12);  color: var(--bs-danger); }
+
+.pipeline-step-type-icon {
+    align-items: center;
+    border-radius: var(--bs-border-radius);
+    display: inline-flex;
+    flex: none;
+    height: 2.5rem;
+    justify-content: center;
+    width: 2.5rem;
+}
+
+/* Rendered Markdown */
+.pipeline-step-body {
+    line-height: 1.7;
+    max-width: 72ch;
+}
+
+.pipeline-step-body > *:first-child {
+    margin-top: 0;
+}
+
+.pipeline-step-body > *:last-child {
+    margin-bottom: 0;
+}
+
+.pipeline-step-body h1,
+.pipeline-step-body h2,
+.pipeline-step-body h3,
+.pipeline-step-body h4,
+.pipeline-step-body h5 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.pipeline-step-body h1 { font-size: 1.5rem; }
+.pipeline-step-body h2 { font-size: 1.3rem; }
+.pipeline-step-body h3 { font-size: 1.15rem; }
+.pipeline-step-body h4,
+.pipeline-step-body h5 { font-size: 1rem; }
+
+.pipeline-step-body pre {
+    background-color: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    font-size: 0.875em;
+    overflow-x: auto;
+    padding: 0.875rem 1rem;
+}
+
+.pipeline-step-body code {
+    background-color: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    font-size: 0.875em;
+    padding: 0.15em 0.35em;
+}
+
+.pipeline-step-body pre code {
+    background: transparent;
+    border: none;
+    font-size: inherit;
+    padding: 0;
+}
+
+.pipeline-step-body blockquote {
+    border-left: 4px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    margin-left: 0;
+    padding-left: 1rem;
+}
+
+.pipeline-step-body table {
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.pipeline-step-body table th,
+.pipeline-step-body table td {
+    border: 1px solid var(--bs-border-color);
+    padding: 0.5rem 0.75rem;
+}
+
+.pipeline-step-body table th {
+    background-color: var(--bs-secondary-bg);
+    font-weight: 600;
+}
+
+/* Requirement checklist */
+.pipeline-check-passed {
+    background-color: rgba(var(--bs-success-rgb), 0.12) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Completion card
    --------------------------------------------------------------------------- */
 @keyframes pipeline-complete-fade {
     from {
@@ -241,40 +401,48 @@
     animation: pipeline-complete-fade 0.4s ease-out;
 }
 
-/* ---------------------------------------------------------------------------
-   Dot navigation (step number buttons below step card)
-   --------------------------------------------------------------------------- */
-.pipeline-dot-nav {
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    display: inline-flex;
+.pipeline-complete-icon {
     align-items: center;
+    background-color: rgba(var(--bs-success-rgb), 0.15);
+    border-radius: 50%;
+    color: var(--bs-success);
+    display: inline-flex;
+    font-size: 2rem;
+    height: 4.5rem;
     justify-content: center;
-    font-size: 0.7rem;
+    width: 4.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pipeline-complete-card {
+        animation: none;
+    }
 }
 
 /* ---------------------------------------------------------------------------
-   Mobile: flatten sidebar into horizontal pill list
+   Flow manager
    --------------------------------------------------------------------------- */
-@media (max-width: 991.98px) {
-    .pipeline-sidebar-card {
-        max-height: none;
-        position: static;
-    }
+.pipeline-stat {
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.2;
+}
 
-    .pipeline-step-item {
-        border-left: none !important;
-        border-bottom: 3px solid transparent !important;
-        display: inline-block;
-        padding: 0.4rem 0.6rem;
-    }
+.pipeline-order-badge {
+    font-variant-numeric: tabular-nums;
+    min-width: 2rem;
+}
 
-    .pipeline-step-item.active {
-        border-bottom-color: var(--bs-primary) !important;
-    }
+.pipeline-reorder .btn {
+    line-height: 1;
+    padding: 0.15rem 0.35rem;
+}
 
-    .pipeline-step-item.pipeline-step-complete {
-        border-bottom-color: var(--bs-success) !important;
-    }
+.pipeline-sticky-actions {
+    background-color: var(--bs-body-bg);
+    border-top: var(--bs-border-width) solid var(--bs-border-color);
+    bottom: 0;
+    position: sticky;
+    z-index: 5;
 }

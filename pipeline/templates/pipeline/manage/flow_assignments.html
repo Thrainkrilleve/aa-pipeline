@@ -2,52 +2,51 @@
 {% load i18n %}
 
 {% block page_title %}{{ page_title }}{% endblock %}
+{% block header_nav_brand %}{% trans "Pipeline" %}{% endblock %}
 
 {% block pipeline_content %}
 <div class="container-fluid py-3">
 
-    {# ── Header ───────────────────────────────────────────────────────────── #}
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h3 class="mb-0">
-                <i class="fas fa-users fa-fw me-2 text-primary"></i>
-                {{ page_title }}
-            </h3>
-            <small class="text-body-secondary">{{ flow.description|default:"" }}</small>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{% url 'pipeline:manage_flow_edit' flow.slug %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back to Flow" %}
-            </a>
-            <a href="{% url 'pipeline:manage_index' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-sliders fa-fw me-1"></i>{% trans "Flow Manager" %}
-            </a>
+    <nav aria-label="{% trans 'Breadcrumb' %}">
+        <ol class="breadcrumb mb-3">
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:index' %}">{% trans "Pipeline" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:manage_index' %}">{% trans "Flow manager" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:manage_flow_edit' flow.slug %}">{{ flow.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Assignments" %}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <span class="pipeline-page-icon"><i class="fas fa-users" aria-hidden="true"></i></span>
+        <div class="min-w-0">
+            <h1 class="h3 mb-0">{% trans "Assignments" %}</h1>
+            <p class="text-body-secondary mb-0 text-truncate">{{ flow.name }}</p>
         </div>
     </div>
 
-    {# ── Summary cards ────────────────────────────────────────────────────── #}
+    {# ── Summary ─────────────────────────────────────────────────────────── #}
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-4">
-            <div class="card text-center border-0 bg-body-secondary h-100">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-warning">{{ total_assigned }}</div>
-                    <div class="small text-body-secondary">{% trans "Assigned" %}</div>
+        <div class="col-12 col-sm-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="small text-body-secondary">{% trans "Not started" %}</div>
+                    <div class="pipeline-stat">{{ total_assigned }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-4">
-            <div class="card text-center border-0 bg-body-secondary h-100">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-info">{{ total_in_progress }}</div>
-                    <div class="small text-body-secondary">{% trans "In Progress" %}</div>
+        <div class="col-12 col-sm-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="small text-body-secondary">{% trans "In progress" %}</div>
+                    <div class="pipeline-stat text-primary">{{ total_in_progress }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
-            <div class="card text-center border-0 bg-body-secondary h-100">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-success">{{ total_completed }}</div>
+        <div class="col-12 col-sm-4">
+            <div class="card h-100">
+                <div class="card-body">
                     <div class="small text-body-secondary">{% trans "Completed" %}</div>
+                    <div class="pipeline-stat text-success">{{ total_completed }}</div>
                 </div>
             </div>
         </div>
@@ -64,11 +63,11 @@
         </h5>
         <div>
             {% if show_completed %}
-            <a href="{% url 'pipeline:manage_flow_assignments' flow.slug %}" class="btn btn-sm btn-outline-secondary">
+            <a href="{% url 'pipeline:manage_flow_assignments' flow.slug %}" class="btn btn-sm btn-quiet">
                 <i class="fas fa-filter fa-fw me-1"></i>{% trans "Show Active Only" %}
             </a>
             {% else %}
-            <a href="?completed=1" class="btn btn-sm btn-outline-secondary">
+            <a href="?completed=1" class="btn btn-sm btn-quiet">
                 <i class="fas fa-eye fa-fw me-1"></i>{% trans "Show All (incl. Completed)" %}
             </a>
             {% endif %}
@@ -100,7 +99,7 @@
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
+                <thead class="small text-uppercase text-body-secondary">
                     <tr>
                         <th>{% trans "User" %}</th>
                         <th>{% trans "Status" %}</th>
@@ -130,11 +129,11 @@
                         {# Status badge #}
                         <td>
                             {% if a.status == 'assigned' %}
-                            <span class="badge text-bg-warning text-dark">{% trans "Assigned" %}</span>
+                            <span class="badge rounded-pill text-bg-secondary">{% trans "Not started" %}</span>
                             {% elif a.status == 'in_progress' %}
-                            <span class="badge text-bg-info text-dark">{% trans "In Progress" %}</span>
+                            <span class="badge rounded-pill text-bg-primary">{% trans "In progress" %}</span>
                             {% else %}
-                            <span class="badge text-bg-success">{% trans "Completed" %}</span>
+                            <span class="badge rounded-pill text-bg-success">{% trans "Completed" %}</span>
                             {% endif %}
                         </td>
 
@@ -143,11 +142,7 @@
                             <div class="d-flex align-items-center gap-2">
                                 <div class="progress flex-grow-1" style="height:8px;" role="progressbar"
                                      aria-valuenow="{{ row.pct }}" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="progress-bar
-                                        {% if row.pct == 100 %}bg-success
-                                        {% elif row.pct >= 50 %}bg-info
-                                        {% else %}bg-warning{% endif %}"
-                                        style="width:{{ row.pct }}%"></div>
+                                    <div class="progress-bar{% if row.pct == 100 %} bg-success{% endif %}" style="width:{{ row.pct }}%"></div>
                                 </div>
                                 <small class="text-body-secondary text-nowrap">
                                     {{ row.completed_required }}/{{ row.total_required }}
@@ -171,7 +166,7 @@
                             {% if state.step.optional %}
                             <i class="fas fa-minus-circle text-body-secondary opacity-50" title="{% trans 'Incomplete (optional)' %}"></i>
                             {% else %}
-                            <i class="fas fa-circle text-warning" title="{% trans 'Incomplete' %}"></i>
+                            <i class="far fa-circle text-body-secondary" title="{% trans 'Incomplete' %}"></i>
                             {% endif %}
                             {% endif %}
                         </td>
@@ -191,7 +186,7 @@
         <p class="mb-0">{% trans "No assignments for this flow yet." %}</p>
         {% else %}
         <p class="mb-1">{% trans "No active assignments right now." %}</p>
-        <a href="?completed=1" class="btn btn-sm btn-outline-secondary mt-2">
+        <a href="?completed=1" class="btn btn-sm btn-quiet mt-2">
             <i class="fas fa-eye fa-fw me-1"></i>{% trans "Show Completed Assignments" %}
         </a>
         {% endif %}

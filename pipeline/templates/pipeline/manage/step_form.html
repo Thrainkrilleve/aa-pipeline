@@ -2,241 +2,181 @@
 {% load i18n %}
 
 {% block page_title %}{{ page_title }}{% endblock %}
+{% block header_nav_brand %}{% trans "Pipeline" %}{% endblock %}
 
 {% block pipeline_content %}
 <div class="container-fluid py-3">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h3 class="mb-0">
-            <i class="fas fa-pen fa-fw me-2 text-primary"></i>
-            {{ page_title }}
-        </h3>
-        <a href="{{ cancel_url }}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back" %}
-        </a>
-    </div>
+    <nav aria-label="{% trans 'Breadcrumb' %}">
+        <ol class="breadcrumb mb-3">
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:index' %}">{% trans "Pipeline" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:manage_index' %}">{% trans "Flow manager" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:manage_flow_edit' flow.slug %}">{{ flow.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% if step %}{{ step.name }}{% else %}{% trans "New step" %}{% endif %}</li>
+        </ol>
+    </nav>
 
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <span class="pipeline-page-icon"><i class="fas fa-shoe-prints" aria-hidden="true"></i></span>
+        <div class="min-w-0">
+            <h1 class="h3 mb-0 text-truncate">{% if step %}{{ step.name }}{% else %}{% trans "New step" %}{% endif %}</h1>
+            <p class="text-body-secondary mb-0">{% blocktrans with name=flow.name %}Step in {{ name }}{% endblocktrans %}</p>
+        </div>
     </div>
-    {% endfor %}
-    {% endif %}
 
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
-            <div class="card">
+        <div class="col-12 col-xl-9 col-xxl-8">
+            <form method="post" class="card" data-pipeline-conditional>
+                {% csrf_token %}
                 <div class="card-header">
-                    <i class="fas fa-shoe-prints fa-fw me-1"></i>
-                    {% if step %}{% trans "Edit Step" %}{% else %}{% trans "New Step" %}{% endif %}
-                    &mdash; <span class="text-body-secondary">{{ flow.name }}</span>
+                    <h2 class="h6 mb-0"><i class="fas fa-circle-info fa-fw me-1 text-body-secondary" aria-hidden="true"></i>{% trans "Step details" %}</h2>
                 </div>
                 <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
 
-                        <div class="row g-3 mb-3">
-                            <div class="col-sm-8">
-                                <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
-                                    {{ form.name.label }}
-                                </label>
-                                {{ form.name }}
-                                {% if form.name.errors %}
-                                <div class="text-danger small mt-1">{{ form.name.errors }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-sm-4">
-                                <label for="{{ form.order.id_for_label }}" class="form-label fw-semibold">
-                                    {{ form.order.label }}
-                                </label>
-                                {{ form.order }}
-                            </div>
+                    <div class="row g-3">
+                        <div class="col-sm-8 col-md-9">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">{{ form.name.label|capfirst }}</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors|join:" " }}</div>{% endif %}
                         </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
-                                {{ form.description.label }}
-                            </label>
+                        <div class="col-sm-4 col-md-3">
+                            <label for="{{ form.order.id_for_label }}" class="form-label fw-semibold">{{ form.order.label|capfirst }}</label>
+                            {{ form.order }}
+                            <div class="form-text">{% trans "Lower numbers come first." %}</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">{{ form.description.label|capfirst }}</label>
                             {{ form.description }}
-                            <div class="form-text">{% trans "Short summary shown in the step sidebar." %}</div>
+                            <div class="form-text">{% trans "Short summary shown under the step name in the step list." %}</div>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.step_type.id_for_label }}" class="form-label fw-semibold">
-                                {{ form.step_type.label }}
-                            </label>
+                        <div class="col-md-6">
+                            <label for="{{ form.step_type.id_for_label }}" class="form-label fw-semibold">{{ form.step_type.label|capfirst }}</label>
                             {{ form.step_type }}
                         </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-text mb-2" data-pipeline-when="step_type=filter_check">
+                                {% trans "Completes on its own once every Smart Filter check below passes." %}
+                            </div>
+                            <div class="form-text mb-2" data-pipeline-when="step_type=acknowledgement">
+                                {% trans "The member ticks a box to confirm they've read the step." %}
+                            </div>
+                            <div class="form-text mb-2" data-pipeline-when="step_type=service_check">
+                                {% trans "Completes once the member has an active account on the service." %}
+                            </div>
+                        </div>
 
-                        <div class="mb-3" id="service-fields">
-                            <label for="{{ form.service_slug.id_for_label }}" class="form-label fw-semibold">
-                                {{ form.service_slug.label }}
-                            </label>
+                        <div class="col-md-6" data-pipeline-when="step_type=service_check">
+                            <label for="{{ form.service_slug.id_for_label }}" class="form-label fw-semibold">{{ form.service_slug.label|capfirst }}</label>
                             {{ form.service_slug }}
                             <div class="form-text">{{ form.service_slug.help_text }}</div>
                         </div>
-
-                        <div class="mb-3" id="service-fallback-field">
+                        <div class="col-md-6 d-flex align-items-center" data-pipeline-when="step_type=service_check">
                             <div class="form-check">
                                 {{ form.service_fallback_acknowledgement }}
                                 <label class="form-check-label" for="{{ form.service_fallback_acknowledgement.id_for_label }}">
-                                    {{ form.service_fallback_acknowledgement.label }}
+                                    {% trans "Ask for an acknowledgement if the service isn't installed" %}
                                 </label>
-                                <div class="form-text">{{ form.service_fallback_acknowledgement.help_text }}</div>
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="{{ form.body.id_for_label }}" class="form-label fw-semibold">
-                                {{ form.body.label }}
-                            </label>
+                        <div class="col-12">
+                            <label for="{{ form.body.id_for_label }}" class="form-label fw-semibold">{{ form.body.label|capfirst }}</label>
                             {{ form.body }}
                             <div class="form-text">{{ form.body.help_text }}</div>
                         </div>
 
-                        <div class="mb-4">
-                            <div class="form-check">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
                                 {{ form.optional }}
-                                <label class="form-check-label fw-semibold" for="{{ form.optional.id_for_label }}">
-                                    {{ form.optional.label }}
-                                </label>
-                                <div class="form-text">
-                                    {% trans "Optional steps do not block flow completion." %}
-                                </div>
+                                <label class="form-check-label fw-semibold" for="{{ form.optional.id_for_label }}">{% trans "Optional step" %}</label>
+                                <div class="form-text mt-0">{% trans "Optional steps count towards progress but don't block completing the flow." %}</div>
                             </div>
                         </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save fa-fw me-1"></i>{{ action_label }}
-                            </button>
-                            <a href="{{ cancel_url }}" class="btn btn-outline-secondary">
-                                {% trans "Cancel" %}
-                            </a>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+                <div class="card-footer d-flex justify-content-end gap-2">
+                    <a href="{{ cancel_url }}" class="btn btn-quiet">{% trans "Cancel" %}</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-floppy-disk fa-fw me-1" aria-hidden="true"></i>{{ action_label }}
+                    </button>
+                </div>
+            </form>
 
-            {# ── Smart Filter Checks (filter_check steps only, only when editing) ─── #}
+            {# ── Smart Filter checks (filter_check steps, once saved) ─────── #}
             {% if step %}
-            <div class="card mt-4" id="filter-checks-card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <span>
-                        <i class="fas fa-filter fa-fw me-1"></i>{% trans "Smart Filter Checks" %}
-                    </span>
-                    <span class="badge text-bg-secondary">{{ checks|length }}</span>
-                </div>
-                <div class="card-body">
-                    <p class="text-body-secondary small mb-3">
-                        {% trans "All checks must pass for this step to be marked complete. Checks are evaluated in order." %}
-                    </p>
+                <div class="card mt-4" data-pipeline-when-type="filter_check">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h2 class="h6 mb-0"><i class="fas fa-filter fa-fw me-1 text-body-secondary" aria-hidden="true"></i>{% trans "Smart Filter checks" %}</h2>
+                        <span class="badge rounded-pill text-bg-secondary">{{ checks|length }}</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-body-secondary small">
+                            {% trans "Every check must pass for this step to complete. Members see them as a checklist in this order." %}
+                        </p>
 
-                    {% if checks %}
-                    <ul class="list-group list-group-flush mb-4">
-                        {% for sc in checks %}
-                        <li class="list-group-item d-flex align-items-center gap-3 px-0">
-                            <span class="badge text-bg-secondary" style="min-width:2rem;">{{ sc.order }}</span>
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold">{{ sc.label|default:sc.filter }}</div>
-                                {% if sc.label %}
-                                <small class="text-body-secondary">{{ sc.filter }}</small>
-                                {% endif %}
+                        {% if checks %}
+                            <ol class="list-group mb-4">
+                                {% for sc in checks %}
+                                    <li class="list-group-item d-flex align-items-center gap-3">
+                                        <span class="badge rounded-pill text-bg-secondary pipeline-order-badge">{{ sc.order }}</span>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="fw-semibold">{{ sc.label|default:sc.filter }}</div>
+                                            {% if sc.label %}<small class="text-body-secondary">{{ sc.filter }}</small>{% endif %}
+                                        </div>
+                                        <form method="post" action="{% url 'pipeline:manage_step_check_delete' flow.slug step.pk sc.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="{% trans 'Remove' %}"
+                                                    data-pipeline-confirm="{% trans 'Remove this Smart Filter check?' %}">
+                                                <i class="fas fa-trash fa-fw" aria-hidden="true"></i><span class="visually-hidden">{% trans "Remove" %}</span>
+                                            </button>
+                                        </form>
+                                    </li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}
+                            <div class="alert alert-warning small">
+                                <i class="fas fa-circle-info fa-fw me-1" aria-hidden="true"></i>
+                                {% trans "No checks yet, so this step completes automatically for everyone. Add at least one." %}
                             </div>
-                            <form method="post"
-                                  action="{% url 'pipeline:manage_step_check_delete' flow.slug step.pk sc.pk %}"
-                                  class="d-inline"
-                                  onsubmit="return confirm('{% trans "Remove this smart filter check?" %}');">
+                        {% endif %}
+
+                        {% if has_filters %}
+                            <form method="post" action="{% url 'pipeline:manage_step_check_add' flow.slug step.pk %}" class="border rounded p-3">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{% trans 'Remove' %}">
-                                    <i class="fas fa-trash fa-fw"></i>
+                                <h3 class="h6 fw-semibold mb-3">{% trans "Add a check" %}</h3>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label for="{{ check_form.filter.id_for_label }}" class="form-label">{% trans "Smart Filter" %}</label>
+                                        {{ check_form.filter }}
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <label for="{{ check_form.label.id_for_label }}" class="form-label">
+                                            {% trans "Label" %} <span class="text-body-secondary">({% trans "optional" %})</span>
+                                        </label>
+                                        {{ check_form.label }}
+                                        <div class="form-text">{{ check_form.label.help_text }}</div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label for="{{ check_form.order.id_for_label }}" class="form-label">{% trans "Order" %}</label>
+                                        {{ check_form.order }}
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary mt-3">
+                                    <i class="fas fa-plus fa-fw me-1" aria-hidden="true"></i>{% trans "Add check" %}
                                 </button>
                             </form>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="text-body-secondary small mb-4">
-                        <i class="fas fa-circle-info fa-fw me-1"></i>
-                        {% trans "No checks configured. This step will auto-pass until at least one check is added." %}
-                    </div>
-                    {% endif %}
-
-                    {# ── Add check form ────────────────────────────────── #}
-                    {% if has_filters %}
-                    <div class="border rounded p-3">
-                        <h6 class="mb-3 fw-semibold">
-                            <i class="fas fa-plus fa-fw me-1 text-primary"></i>{% trans "Add a check" %}
-                        </h6>
-                        <form method="post" action="{% url 'pipeline:manage_step_check_add' flow.slug step.pk %}">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="{{ check_form.filter.id_for_label }}" class="form-label fw-semibold">
-                                    {% trans "Smart Filter" %}
-                                </label>
-                                {{ check_form.filter }}
+                        {% else %}
+                            <div class="alert alert-secondary mb-0">
+                                {% blocktrans %}No Smart Filters are in the catalog yet. Run <code>python manage.py pipeline_sync_filters</code> to import your existing filters, or add one in the Django admin.{% endblocktrans %}
                             </div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-sm-8">
-                                    <label for="{{ check_form.label.id_for_label }}" class="form-label fw-semibold">
-                                        {% trans "Label" %} <span class="fw-normal text-body-secondary">({% trans "optional" %})</span>
-                                    </label>
-                                    {{ check_form.label }}
-                                    <div class="form-text">{{ check_form.label.help_text }}</div>
-                                </div>
-                                <div class="col-sm-4">
-                                    <label for="{{ check_form.order.id_for_label }}" class="form-label fw-semibold">
-                                        {% trans "Order" %}
-                                    </label>
-                                    {{ check_form.order }}
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-primary">
-                                <i class="fas fa-plus fa-fw me-1"></i>{% trans "Add Check" %}
-                            </button>
-                        </form>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="alert alert-warning mb-0">
-                        <i class="fas fa-exclamation-triangle fa-fw me-1"></i>
-                        {% blocktrans %}
-                        No Smart Filters are registered in the catalog yet. Run
-                        <code>python manage.py pipeline_sync_filters</code> to import existing filters,
-                        or add a Smart Filter object via the Django admin first.
-                        {% endblocktrans %}
-                    </div>
-                    {% endif %}
                 </div>
-            </div>
             {% endif %}
-
         </div>
     </div>
-
 </div>
-
-<script>
-(function () {
-    const typeSelect = document.getElementById('{{ form.step_type.id_for_label }}');
-    const serviceFields = document.getElementById('service-fields');
-    const serviceFallback = document.getElementById('service-fallback-field');
-    const filterChecksCard = document.getElementById('filter-checks-card');
-
-    function toggle() {
-        const val = typeSelect ? typeSelect.value : '';
-        const isService = val === 'service_check';
-        const isFilter = val === 'filter_check';
-        if (serviceFields) serviceFields.style.display = isService ? '' : 'none';
-        if (serviceFallback) serviceFallback.style.display = isService ? '' : 'none';
-        if (filterChecksCard) filterChecksCard.style.display = isFilter ? '' : 'none';
-    }
-
-    if (typeSelect) {
-        typeSelect.addEventListener('change', toggle);
-        toggle();
-    }
-})();
-</script>
 {% endblock %}

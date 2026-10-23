@@ -122,15 +122,25 @@ def _build_step_list(user, flow: OnboardingFlow, assignment: FlowAssignment) -> 
         "checks__filter__content_type", 
         "checks__filter__filter_object"
     ).order_by("order"):
-        complete = step.is_complete(user, assignment)
         etype = step.effective_type
+        check_details = step.get_check_details(user)
+        if etype == StepType.FILTER_CHECK:
+            # Derive completion from the details so each Smart Filter is evaluated
+            # once per request; is_complete() and get_completion_pct() would each
+            # evaluate every filter again.
+            passed = sum(1 for d in check_details if d["passed"])
+            complete = passed == len(check_details)
+            pct = passed / len(check_details) if check_details else 1.0
+        else:
+            complete = step.is_complete(user, assignment)
+            pct = 1.0 if complete else 0.0
         steps.append(
             {
                 "step": step,
                 "complete": complete,
                 "effective_type": etype,
-                "check_details": step.get_check_details(user),
-                "pct": step.get_completion_pct(user, assignment),
+                "check_details": check_details,
+                "pct": pct,
                 "body_html": render_markdown(step.body),
                 "url": reverse(
                     "pipeline:flow_detail_step",
@@ -179,6 +189,7 @@ def pipeline_dashboard(request) -> str:
 
     assigned = (
         OnboardingFlow.objects.get_assigned_for_user(request.user)
+        .filter(status=FlowStatus.PUBLISHED)
         .prefetch_related(
             Prefetch(
                 "assignments",
@@ -238,7 +249,9 @@ def index(request: WSGIRequest) -> HttpResponse:
     user = request.user
 
     assigned_flows = (
-        OnboardingFlow.objects.get_assigned_for_user(user)
+        OnboardingFlow.objects.get_assigned_for_user(user, include_completed=True)
+        # Drafts are manager previews and archived flows can't be opened.
+        .filter(status=FlowStatus.PUBLISHED)
         .prefetch_related(
             Prefetch(
                 "assignments",
@@ -290,9 +303,18 @@ def index(request: WSGIRequest) -> HttpResponse:
             )
         return result
 
+    assigned_items = _enrich(assigned_flows)
     context = {
-        "assigned_items": _enrich(assigned_flows),
+        "assigned_items": [
+            item for item in assigned_items
+            if item["assignment"] and item["assignment"].status != AssignmentStatus.COMPLETED
+        ],
+        "completed_items": [
+            item for item in assigned_items
+            if item["assignment"] and item["assignment"].status == AssignmentStatus.COMPLETED
+        ],
         "available_items": _enrich(visible_flows),
+        "can_manage": _can_manage(user),
     }
     return render(request, "pipeline/index.html", context)
 
@@ -380,12 +402,24 @@ def flow_detail(
     # First incomplete required step (for "Next" CTA when viewing a completed step)
     next_step = _first_incomplete(steps)
 
+    current_index = steps.index(current) if current else None
+    prev_item = steps[current_index - 1] if current_index else None
+    next_item = (
+        steps[current_index + 1]
+        if current_index is not None and current_index + 1 < len(steps)
+        else None
+    )
+
     context = {
         "flow": flow,
         "assignment": assignment,
         "steps": steps,
         "current": current,
         "next_step": next_step,
+        "current_number": current_index + 1 if current_index is not None else None,
+        "prev_item": prev_item,
+        "next_item": next_item,
+        "can_manage": _can_manage(user),
         "all_complete": all_required_done,
         "complete_body_html": complete_body_html,
         "total_pct": total_pct,
@@ -480,6 +514,14 @@ def _can_manage(user) -> bool:
     return user.is_superuser or user.has_perm("pipeline.manage_flows")
 
 
+_AUDIENCE_FIELDS = ("states", "groups", "corporations", "alliances", "factions", "characters")
+
+
+def _audience_fields(form: FlowForm) -> list:
+    """Bound audience fields, in display order, for the flow form template."""
+    return [form[name] for name in _AUDIENCE_FIELDS]
+
+
 def _require_manage(view_func):
     """Decorator: must be logged in AND have manage_flows or be superuser."""
     from functools import wraps
@@ -538,6 +580,7 @@ def manage_flow_create(request: WSGIRequest) -> HttpResponse:
 
     context = {
         "form": form,
+        "audience_fields": _audience_fields(form),
         "page_title": _("Create Flow"),
         "action_label": _("Create Flow"),
         "cancel_url": reverse("pipeline:manage_index"),
@@ -559,9 +602,10 @@ def manage_flow_edit(request: WSGIRequest, slug: str) -> HttpResponse:
     else:
         form = FlowForm(instance=flow)
 
-    steps = flow.steps.order_by("order")
+    steps = flow.steps.order_by("order", "pk")
     context = {
         "form": form,
+        "audience_fields": _audience_fields(form),
         "flow": flow,
         "steps": steps,
         "page_title": _(f"Edit: {flow.name}"),
@@ -584,6 +628,7 @@ def manage_flow_delete(request: WSGIRequest, slug: str) -> HttpResponse:
 
     context = {
         "flow": flow,
+        "step_count": flow.steps.count(),
         "page_title": _(f"Delete: {flow.name}"),
     }
     return render(request, "pipeline/manage/flow_confirm_delete.html", context)
@@ -593,7 +638,8 @@ def manage_flow_delete(request: WSGIRequest, slug: str) -> HttpResponse:
 def manage_step_create(request: WSGIRequest, slug: str) -> HttpResponse:
     """Add a new step to a flow."""
     flow = get_object_or_404(OnboardingFlow, slug=slug)
-    next_order = (flow.steps.order_by("-order").values_list("order", flat=True).first() or -1) + 1
+    last_order = flow.steps.order_by("-order").values_list("order", flat=True).first()
+    next_order = 0 if last_order is None else last_order + 1
 
     if request.method == "POST":
         form = FlowStepForm(request.POST)
@@ -632,7 +678,8 @@ def manage_step_edit(request: WSGIRequest, slug: str, step_pk: int) -> HttpRespo
         form = FlowStepForm(instance=step)
 
     checks = step.checks.select_related("filter__content_type").order_by("order")
-    check_form = StepCheckForm(initial={"order": (checks.values_list("order", flat=True).last() or -1) + 1})
+    last_check_order = checks.values_list("order", flat=True).last()
+    check_form = StepCheckForm(initial={"order": 0 if last_check_order is None else last_check_order + 1})
     has_filters = CheckFilter.objects.exists()
 
     context = {
@@ -810,20 +857,23 @@ def manage_step_reorder(request: WSGIRequest, slug: str, step_pk: int, direction
         return redirect("pipeline:manage_flow_edit", slug=slug)
     flow = get_object_or_404(OnboardingFlow, slug=slug)
     step = get_object_or_404(FlowStep, pk=step_pk, flow=flow)
-    ordered = list(flow.steps.order_by("order"))
+    ordered = list(flow.steps.order_by("order", "pk"))
     idx = next((i for i, s in enumerate(ordered) if s.pk == step.pk), None)
     if idx is None:
         return redirect("pipeline:manage_flow_edit", slug=slug)
 
     if direction == "up" and idx > 0:
-        neighbour = ordered[idx - 1]
+        swap_with = idx - 1
     elif direction == "down" and idx < len(ordered) - 1:
-        neighbour = ordered[idx + 1]
+        swap_with = idx + 1
     else:
         return redirect("pipeline:manage_flow_edit", slug=slug)
 
-    # Swap order values
-    step.order, neighbour.order = neighbour.order, step.order
-    FlowStep.objects.bulk_update([step, neighbour], ["order"])
+    # Renumber 0..n-1 after swapping positions. Swapping the stored values
+    # directly does nothing when two steps share the same order number.
+    ordered[idx], ordered[swap_with] = ordered[swap_with], ordered[idx]
+    for position, item in enumerate(ordered):
+        item.order = position
+    FlowStep.objects.bulk_update(ordered, ["order"])
     return redirect("pipeline:manage_flow_edit", slug=slug)
 

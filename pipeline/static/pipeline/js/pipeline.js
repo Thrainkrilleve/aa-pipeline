@@ -7,44 +7,15 @@
     "use strict";
 
     /**
-     * Auto-scroll the sidebar step list so the active/current step is visible.
-     * Called on page load.
-     */
-    function scrollSidebarToActive() {
-        const sidebar = document.getElementById("pipelineSidebarBody");
-        if (!sidebar) return;
-
-        const listGroup = sidebar.querySelector(".list-group");
-        const activeItem = sidebar.querySelector(".pipeline-step-item.active");
-        if (!listGroup || !activeItem) return;
-
-        // Only scroll if the list group itself scrolls (overflow-y: auto)
-        const listGroupStyle = window.getComputedStyle(listGroup);
-        if (listGroupStyle.overflowY !== "auto" && listGroupStyle.overflowY !== "scroll") return;
-
-        // Scroll the active item into view within the list group, not the page
-        const itemTop = activeItem.offsetTop - listGroup.offsetTop;
-        const listGroupHeight = listGroup.clientHeight;
-        const itemHeight = activeItem.clientHeight;
-
-        if (itemTop < listGroup.scrollTop || itemTop + itemHeight > listGroup.scrollTop + listGroupHeight) {
-            listGroup.scrollTop = itemTop - listGroupHeight / 2 + itemHeight / 2;
-        }
-    }
-
-    /**
-     * Disable acknowledgement submit button until the checkbox is checked.
+     * Keep the acknowledgement button disabled until its checkbox is ticked.
      */
     function wireAckCheckbox() {
         document.querySelectorAll("[id^='ack-checkbox-']").forEach(function (checkbox) {
             const form = checkbox.closest("form");
-            if (!form) return;
-            const btn = form.querySelector("button[type='submit']");
+            const btn = form && form.querySelector("button[type='submit']");
             if (!btn) return;
 
-            // Set initial state
             btn.disabled = !checkbox.checked;
-
             checkbox.addEventListener("change", function () {
                 btn.disabled = !checkbox.checked;
             });
@@ -52,28 +23,91 @@
     }
 
     /**
-     * Collapse sidebar on mobile: update icon direction on show/hide events.
+     * Scroll the step list so the current step is visible when the list is
+     * taller than the viewport.
      */
-    function wireSidebarCollapse() {
-        const sidebarBody = document.getElementById("pipelineSidebarBody");
-        if (!sidebarBody) return;
+    function scrollStepperToCurrent() {
+        const card = document.querySelector(".pipeline-stepper-card");
+        const current = card && card.querySelector(".pipeline-stepper-item.is-current");
+        if (!current || card.scrollHeight <= card.clientHeight) return;
+        card.scrollTop = current.offsetTop - card.clientHeight / 2 + current.clientHeight / 2;
+    }
 
-        sidebarBody.addEventListener("show.bs.collapse", function () {
-            const icon = document.querySelector(".pipeline-collapse-icon");
-            if (icon) icon.style.transform = "rotate(180deg)";
+    /**
+     * Ask before submitting buttons that carry data-pipeline-confirm.
+     */
+    function wireConfirmations() {
+        document.addEventListener("click", function (event) {
+            const button = event.target.closest("[data-pipeline-confirm]");
+            if (button && !window.confirm(button.dataset.pipelineConfirm)) {
+                event.preventDefault();
+            }
         });
+    }
 
-        sidebarBody.addEventListener("hide.bs.collapse", function () {
-            const icon = document.querySelector(".pipeline-collapse-icon");
-            if (icon) icon.style.transform = "rotate(0deg)";
+    /**
+     * Show elements marked data-pipeline-when="field=value value" only while
+     * the named field in the same form has one of the listed values. Hidden
+     * fields stay enabled so their saved values are kept.
+     */
+    function wireConditionalFields() {
+        document.querySelectorAll("form[data-pipeline-conditional]").forEach(function (form) {
+            const targets = Array.from(form.querySelectorAll("[data-pipeline-when]"));
+            const typeField = form.elements.namedItem("step_type");
+            // Step-type dependent cards outside the form (e.g. Smart Filter checks).
+            const outside = Array.from(document.querySelectorAll("[data-pipeline-when-type]"));
+
+            function update() {
+                targets.forEach(function (el) {
+                    const [name, values] = el.dataset.pipelineWhen.split("=");
+                    const field = form.elements.namedItem(name.trim());
+                    el.hidden = !(field && values.trim().split(/\s+/).includes(field.value));
+                });
+                outside.forEach(function (el) {
+                    el.hidden = !(typeField && typeField.value === el.dataset.pipelineWhenType);
+                });
+            }
+
+            form.addEventListener("change", update);
+            update();
+        });
+    }
+
+    /**
+     * Filter box above each audience multi-select, plus a "n selected" count.
+     */
+    function wireSelectFilters() {
+        document.querySelectorAll("[data-pipeline-filter-select]").forEach(function (input) {
+            const select = document.getElementById(input.dataset.pipelineFilterSelect);
+            if (!select) return;
+            const counter = document.querySelector(
+                "[data-pipeline-selected-count='" + select.id + "']"
+            );
+
+            input.addEventListener("input", function () {
+                const query = input.value.trim().toLowerCase();
+                Array.from(select.options).forEach(function (option) {
+                    option.hidden = query !== "" && !option.text.toLowerCase().includes(query);
+                });
+            });
+
+            function updateCount() {
+                if (!counter) return;
+                const count = select.selectedOptions.length;
+                counter.textContent = count ? count + " selected" : "";
+            }
+            select.addEventListener("change", updateCount);
+            updateCount();
         });
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", function () {
-        scrollSidebarToActive();
         wireAckCheckbox();
-        wireSidebarCollapse();
+        scrollStepperToCurrent();
+        wireConfirmations();
+        wireConditionalFields();
+        wireSelectFilters();
     });
 
 }());

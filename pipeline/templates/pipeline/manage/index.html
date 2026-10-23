@@ -2,138 +2,130 @@
 {% load i18n %}
 
 {% block page_title %}{% trans "Manage Flows" %}{% endblock %}
+{% block header_nav_brand %}{% trans "Pipeline" %}{% endblock %}
 
 {% block pipeline_content %}
 <div class="container-fluid py-3">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h3 class="mb-0">
-                <i class="fas fa-sliders fa-fw me-2 text-primary"></i>
-                {% trans "Flow Manager" %}
-            </h3>
-            <small class="text-body-secondary">{% trans "Create and manage Pipeline flows" %}</small>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{% url 'pipeline:index' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left fa-fw me-1"></i>{% trans "Back to Pipeline" %}
-            </a>
-            <a href="{% url 'pipeline:manage_flow_create' %}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus fa-fw me-1"></i>{% trans "New Flow" %}
-            </a>
-        </div>
-    </div>
+    <nav aria-label="{% trans 'Breadcrumb' %}">
+        <ol class="breadcrumb mb-3">
+            <li class="breadcrumb-item"><a href="{% url 'pipeline:index' %}">{% trans "Pipeline" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Flow manager" %}</li>
+        </ol>
+    </nav>
 
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-    {% endif %}
-
-    {% if flows %}
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>{% trans "Name" %}</th>
-                        <th>{% trans "Type" %}</th>
-                        <th>{% trans "Status" %}</th>
-                        <th class="text-center">{% trans "Steps" %}</th>
-                        <th class="text-center">{% trans "Active" %}</th>
-                        <th class="text-center">{% trans "Completed" %}</th>
-                        <th class="text-center">{% trans "Auto-assign" %}</th>
-                        <th class="text-end">{% trans "Actions" %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for flow in flows %}
-                    <tr>
-                        <td>
-                            <strong>{{ flow.name }}</strong>
-                            {% if flow.description %}
-                            <br><small class="text-body-secondary">{{ flow.description|truncatewords:12 }}</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge pipeline-badge-type pipeline-type-{{ flow.flow_type }}">
-                                {{ flow.get_flow_type_display }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if flow.status == 'published' %}
-                            <span class="badge text-bg-success">{% trans "Published" %}</span>
-                            {% elif flow.status == 'draft' %}
-                            <span class="badge text-bg-warning text-dark">{% trans "Draft" %}</span>
-                            {% else %}
-                            <span class="badge text-bg-secondary">{% trans "Archived" %}</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            <span class="badge text-bg-secondary">{{ flow.step_count }}</span>
-                        </td>
-                        <td class="text-center">
-                            <a href="{% url 'pipeline:manage_flow_assignments' flow.slug %}"
-                               class="badge text-bg-info text-dark text-decoration-none"
-                               title="{% trans 'View active assignments' %}">{{ flow.active_count }}</a>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge text-bg-success">{{ flow.completed_count }}</span>
-                        </td>
-                        <td class="text-center">
-                            {% if flow.auto_assign %}
-                            <i class="fas fa-check text-success"></i>
-                            {% else %}
-                            <i class="fas fa-minus text-body-secondary"></i>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{% url 'pipeline:flow_detail' flow.slug %}"
-                                   class="btn btn-outline-secondary" title="{% trans 'Preview' %}">
-                                    <i class="fas fa-eye fa-fw"></i>
-                                </a>
-                                <a href="{% url 'pipeline:manage_flow_edit' flow.slug %}"
-                                   class="btn btn-outline-primary" title="{% trans 'Edit' %}">
-                                    <i class="fas fa-pen fa-fw"></i>
-                                </a>
-                                <form method="post" action="{% url 'pipeline:manage_flow_publish' flow.slug %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit"
-                                            class="btn {% if flow.status == 'published' %}btn-outline-warning{% elif flow.status == 'archived' %}btn-outline-secondary{% else %}btn-outline-success{% endif %}"
-                                            title="{% if flow.status == 'published' %}{% trans 'Unpublish' %}{% elif flow.status == 'archived' %}{% trans 'Restore to Draft' %}{% else %}{% trans 'Publish' %}{% endif %}">
-                                        {% if flow.status == 'published' %}
-                                        <i class="fas fa-eye-slash fa-fw"></i>
-                                        {% elif flow.status == 'archived' %}
-                                        <i class="fas fa-rotate-left fa-fw"></i>
-                                        {% else %}
-                                        <i class="fas fa-globe fa-fw"></i>
-                                        {% endif %}
-                                    </button>
-                                </form>
-                                <a href="{% url 'pipeline:manage_flow_delete' flow.slug %}"
-                                   class="btn btn-outline-danger" title="{% trans 'Delete' %}">
-                                    <i class="fas fa-trash fa-fw"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <span class="pipeline-page-icon"><i class="fas fa-sliders" aria-hidden="true"></i></span>
+            <div>
+                <h1 class="h3 mb-0">{% trans "Flow manager" %}</h1>
+                <p class="text-body-secondary mb-0">{% trans "Create flows, choose who sees them and track progress." %}</p>
+            </div>
         </div>
-    </div>
-    {% else %}
-    <div class="text-center py-5 text-body-secondary">
-        <i class="fas fa-diagram-project fa-3x mb-3 d-block opacity-25"></i>
-        <p class="mb-3">{% trans "No flows yet. Create your first flow to get started." %}</p>
         <a href="{% url 'pipeline:manage_flow_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus fa-fw me-1"></i>{% trans "Create Flow" %}
+            <i class="fas fa-plus fa-fw me-1" aria-hidden="true"></i>{% trans "New flow" %}
         </a>
     </div>
+
+    {% if flows %}
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="small text-uppercase text-body-secondary text-nowrap">
+                            <th scope="col" class="fw-semibold">{% trans "Flow" %}</th>
+                            <th scope="col" class="fw-semibold">{% trans "Status" %}</th>
+                            <th scope="col" class="fw-semibold text-center">{% trans "Steps" %}</th>
+                            <th scope="col" class="fw-semibold text-center">{% trans "Active" %}</th>
+                            <th scope="col" class="fw-semibold text-center">{% trans "Completed" %}</th>
+                            <th scope="col" class="fw-semibold text-center">{% trans "Auto-assign" %}</th>
+                            <th scope="col"><span class="visually-hidden">{% trans "Actions" %}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for flow in flows %}
+                            <tr>
+                                <td style="min-width: 16rem;">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <a href="{% url 'pipeline:manage_flow_edit' flow.slug %}" class="fw-semibold text-decoration-none">{{ flow.name }}</a>
+                                        <span class="badge pipeline-badge-type pipeline-type-{{ flow.flow_type }}">{{ flow.get_flow_type_display }}</span>
+                                    </div>
+                                    {% if flow.description %}
+                                        <div class="small text-body-secondary pipeline-clamp-2">{{ flow.description }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if flow.status == 'published' %}
+                                        <span class="badge rounded-pill text-bg-success">{% trans "Published" %}</span>
+                                    {% elif flow.status == 'draft' %}
+                                        <span class="badge rounded-pill text-bg-warning">{% trans "Draft" %}</span>
+                                    {% else %}
+                                        <span class="badge rounded-pill text-bg-secondary">{% trans "Archived" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ flow.step_count }}</td>
+                                <td class="text-center">
+                                    <a href="{% url 'pipeline:manage_flow_assignments' flow.slug %}" class="text-decoration-none"
+                                       title="{% trans 'View assignments' %}">{{ flow.active_count }}</a>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'pipeline:manage_flow_assignments' flow.slug %}?completed=1" class="text-decoration-none"
+                                       title="{% trans 'View assignments' %}">{{ flow.completed_count }}</a>
+                                </td>
+                                <td class="text-center">
+                                    {% if flow.auto_assign %}
+                                        <i class="fas fa-check text-success" aria-hidden="true"></i><span class="visually-hidden">{% trans "Yes" %}</span>
+                                    {% else %}
+                                        <span class="text-body-secondary" aria-hidden="true">—</span><span class="visually-hidden">{% trans "No" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <form method="post" action="{% url 'pipeline:manage_flow_publish' flow.slug %}" class="d-inline">
+                                        {% csrf_token %}
+                                        {% if flow.status == 'published' %}
+                                            <button type="submit" class="btn btn-sm btn-quiet"
+                                                    data-pipeline-confirm="{% blocktrans with name=flow.name %}Unpublish “{{ name }}”? Members won't see it until you publish it again.{% endblocktrans %}">
+                                                <i class="fas fa-eye-slash fa-fw me-1" aria-hidden="true"></i>{% trans "Unpublish" %}
+                                            </button>
+                                        {% elif flow.status == 'archived' %}
+                                            <button type="submit" class="btn btn-sm btn-quiet">
+                                                <i class="fas fa-rotate-left fa-fw me-1" aria-hidden="true"></i>{% trans "Restore" %}
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fas fa-globe fa-fw me-1" aria-hidden="true"></i>{% trans "Publish" %}
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                    <div class="btn-group btn-group-sm ms-1">
+                                        <a href="{% url 'pipeline:flow_detail' flow.slug %}" class="btn btn-quiet" title="{% trans 'Preview' %}">
+                                            <i class="fas fa-eye fa-fw" aria-hidden="true"></i><span class="visually-hidden">{% trans "Preview" %}</span>
+                                        </a>
+                                        <a href="{% url 'pipeline:manage_flow_edit' flow.slug %}" class="btn btn-quiet" title="{% trans 'Edit' %}">
+                                            <i class="fas fa-pen fa-fw" aria-hidden="true"></i><span class="visually-hidden">{% trans "Edit" %}</span>
+                                        </a>
+                                        <a href="{% url 'pipeline:manage_flow_delete' flow.slug %}" class="btn btn-outline-danger" title="{% trans 'Delete' %}">
+                                            <i class="fas fa-trash fa-fw" aria-hidden="true"></i><span class="visually-hidden">{% trans "Delete" %}</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <span class="pipeline-page-icon mb-3"><i class="fas fa-diagram-project" aria-hidden="true"></i></span>
+                <h2 class="h5">{% trans "No flows yet" %}</h2>
+                <p class="text-body-secondary">{% trans "Create your first flow to start guiding members through onboarding, training or certification." %}</p>
+                <a href="{% url 'pipeline:manage_flow_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus fa-fw me-1" aria-hidden="true"></i>{% trans "Create a flow" %}
+                </a>
+            </div>
+        </div>
     {% endif %}
 
 </div>

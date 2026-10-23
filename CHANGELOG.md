@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.1.32] - 2026-10-23
+
+### Changed
+- Redesigned the member and manager pages:
+  - The Pipeline page groups flows into Assigned to you, Available and Completed, with cleaner cards.
+  - A flow's page has a numbered step list, "Step 2 of 5" context, previous/next buttons and an in-page breadcrumb.
+  - The dashboard widget is a compact list instead of a fixed 300px table.
+  - Manager pages share one header and breadcrumb layout, the flow editor has a single Save bar that stays in view, and the audience pickers show how many items are selected.
+  - Colours come from the active Alliance Auth theme, so dark themes such as Darkly stay readable.
+- Step pages evaluate each Smart Filter once per request instead of three times.
+
+### Fixed
+- Completed flows disappeared from the Pipeline page; they now show under Completed with a Review button.
+- The Pipeline page and dashboard widget only list published flows; draft previews and archived flows linked to pages members can't open.
+- Leaving the slug blank when creating a flow failed with "This field is required" instead of generating one from the name.
+- A flow's second step got the same order number as the first, after which the move up/down buttons did nothing. Reordering now renumbers the steps, which also repairs flows that already have duplicate order numbers.
+- New Smart Filter checks had the same order-number problem.
+- Flash messages appeared twice on the flow manager, flow editor and step editor.
+- The flow editor's form was mis-nested in the page and the page didn't load `pipeline.js`.
+- The flow delete page left the number of steps that would be deleted blank.
+
+---
+
+## [0.1.31] - 2026-10-22
 
 ### Changed
 - Dropped support for Python 3.10 and 3.11; `requires-python` is now `>=3.12`. This follows Alliance Auth moving its Python 3.10/3.11 deprecation up to 2026-11-13 (mid AA v5). Docker installs already run Python 3.12, so no action is needed there.
